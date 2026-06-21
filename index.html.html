@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nolan Tracker - Anti Procrastination V6 (Ultime)</title>
+<style>
+:root {
+  --xp-purple: #7C3AED; --xp-purple-light: #F5F3FF;
+  --xp-green: #10B981; --xp-green-light: #ECFDF5;
+  --xp-amber: #F59E0B; --xp-amber-light: #FFFBEB;
+  --xp-coral: #F43F5E; --xp-coral-light: #FFF1F2;
+  --xp-blue: #3B82F6; --xp-blue-light: #EFF6FF;
+  
+  --color-background-primary: #ffffff;
+  --color-background-secondary: #f8fafc;
+  --color-border-primary: #cbd5e1;
+  --color-border-secondary: #e2e8f0;
+  --color-border-tertiary: #f1f5f9;
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-tertiary: #94a3b8;
+  --border-radius-md: 10px;
+  --border-radius-lg: 16px;
+  --font-sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background-primary: #0f172a; --color-background-secondary: #1e293b;
+    --color-border-primary: #475569; --color-border-secondary: #334155; --color-border-tertiary: #1e293b;
+    --color-text-primary: #f8fafc; --color-text-secondary: #cbd5e1; --color-text-tertiary: #64748b;
+    --xp-purple-light: #2e1065; --xp-green-light: #064e3b; --xp-amber-light: #78350f;
+    --xp-coral-light: #881337; --xp-blue-light: #1e3a8a;
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); background: var(--color-background-primary); color: var(--color-text-primary); padding: 16px; line-height: 1.5; }
+.app { max-width: 600px; margin: 0 auto; padding: 12px 0; padding-bottom: 60px; }
+
+/* En-tête */
+.header-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding: 16px; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: white; border-radius: var(--border-radius-lg); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2); position: relative; overflow: hidden; }
+.header-bar::after { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(124,58,237,0.15) 0%, transparent 60%); pointer-events: none; }
+.lvl-badge { background: linear-gradient(135deg, var(--xp-purple), #c084fc); color: #fff; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 20px; white-space: nowrap; text-shadow: 0 1px 2px rgba(0,0,0,0.2); box-shadow: 0 4px 10px rgba(124,58,237,0.3); }
+.streak-num { font-size: 28px; font-weight: 800; color: #fbbf24; line-height: 1; margin-top: 8px; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+.streak-lbl { font-size: 11px; color: #cbd5e1; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+
+.xp-section { flex: 1; z-index: 1; }
+.xp-label-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.xp-label { font-size: 12px; color: #94a3b8; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+.xp-val { font-size: 13px; font-weight: 700; color: #fff; }
+.xp-bar-bg { height: 10px; background: rgba(255,255,255,0.1); border-radius: 5px; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.3); }
+.xp-bar-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #8b5cf6, #d946ef); border-radius: 5px; transition: width 0.8s cubic-bezier(.4,2,.6,1); box-shadow: 0 0 10px rgba(139,92,246,0.5); }
+
+.hp-box { text-align: center; z-index: 1; background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); }
+.hp-hearts { font-size: 18px; line-height: 1.2; letter-spacing: 2px; }
+
+/* Tabs */
+.tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+.tab { padding: 8px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid var(--color-border-secondary); color: var(--color-text-secondary); background: var(--color-background-primary); transition: all .2s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.02); display: flex; align-items: center; gap: 6px; }
+.tab:hover { border-color: var(--xp-purple); color: var(--xp-purple); transform: translateY(-1px); }
+.tab.active { background: linear-gradient(135deg, var(--xp-purple), #6d28d9); color: #fff; border-color: transparent; box-shadow: 0 4px 12px rgba(124,58,237,0.3); }
+
+.panel { display: none; animation: fadeIn 0.3s ease; }
+.panel.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Focus Mode Button */
+.focus-btn-main { width: 100%; background: linear-gradient(135deg, #ef4444, #b91c1c); color: white; border: none; padding: 14px; border-radius: var(--border-radius-lg); font-size: 15px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 16px; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4); transition: transform 0.2s; }
+.focus-btn-main:hover { transform: scale(1.02); }
+
+/* Jours et tâches */
+.day-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; margin-top: 24px; padding-bottom: 4px; border-bottom: 2px solid var(--color-border-tertiary); }
+.day-header:first-child { margin-top: 0; }
+.day-name { font-size: 16px; font-weight: 800; color: var(--color-text-primary); text-transform: uppercase; letter-spacing: 0.5px; }
+.day-tag { font-size: 10px; padding: 3px 8px; border-radius: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+
+.dt-sport { background: var(--xp-green-light); color: #047857; border: 1px solid #34d399; }
+.dt-combat { background: var(--xp-coral-light); color: #be123c; border: 1px solid #fb7185; }
+.dt-ia { background: var(--xp-purple-light); color: #5b21b6; border: 1px solid #a78bfa; }
+.dt-biz { background: var(--xp-amber-light); color: #b45309; border: 1px solid #fbbf24; }
+.dt-recup { background: var(--xp-blue-light); color: #1d4ed8; border: 1px solid #60a5fa; }
+.dt-repos { background: var(--color-border-secondary); color: var(--color-text-secondary); }
+
+.task-card { display: flex; align-items: stretch; gap: 12px; padding: 12px; margin-bottom: 10px; border-radius: var(--border-radius-md); border: 1px solid var(--color-border-secondary); background: var(--color-background-primary); cursor: pointer; transition: all .2s; position: relative; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+.task-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--color-border-secondary); transition: all .2s; }
+.task-card:hover { transform: translateX(2px); box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-color: var(--color-border-primary); }
+
+.task-card[data-cat="sport"]::before { background: var(--xp-green); }
+.task-card[data-cat="combat"]::before { background: var(--xp-coral); }
+.task-card[data-cat="ia"]::before { background: var(--xp-purple); }
+.task-card[data-cat="biz"]::before { background: var(--xp-amber); }
+.task-card[data-cat="recup"]::before { background: var(--xp-blue); }
+
+.task-card.done { opacity: 0.6; background: var(--color-background-secondary); border-color: var(--color-border-tertiary); transform: none; box-shadow: none; }
+.task-card.done::before { background: var(--color-text-tertiary); }
+.task-card.done .task-title { text-decoration: line-through; color: var(--color-text-secondary); }
+
+.task-check { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--color-border-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; transition: all .2s; background: var(--color-background-primary); font-size: 14px; color: transparent; font-weight: bold; }
+.task-card.done .task-check { background: var(--xp-green); border-color: var(--xp-green); color: #fff; transform: scale(1.1); }
+
+.task-body { flex: 1; min-width: 0; padding-top: 2px; }
+.task-title { font-size: 15px; color: var(--color-text-primary); font-weight: 600; line-height: 1.3; margin-bottom: 4px; }
+.task-sub { font-size: 12px; color: var(--color-text-secondary); line-height: 1.5; }
+
+.task-right { display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; }
+.task-emoji { font-size: 20px; margin-bottom: 4px; opacity: 0.8; }
+.task-xp { font-size: 12px; font-weight: 700; color: var(--xp-purple); white-space: nowrap; background: var(--xp-purple-light); padding: 2px 6px; border-radius: 6px; }
+.task-card.done .task-xp { background: transparent; color: var(--color-text-tertiary); }
+
+/* Custom Task Form */
+.add-task-form { background: var(--color-background-secondary); padding: 15px; border-radius: var(--border-radius-md); border: 1px solid var(--color-border-secondary); margin-top: 20px; }
+.add-task-form h4 { font-size: 14px; margin-bottom: 12px; color: var(--color-text-primary); }
+.add-task-input { width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 8px; border: 1px solid var(--color-border-primary); background: var(--color-background-primary); color: var(--color-text-primary); font-size: 14px; }
+.add-task-btn { width: 100%; padding: 12px; background: linear-gradient(135deg, var(--xp-purple), #6d28d9); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; transition: transform 0.2s; }
+
+/* Sections IA & Macros */
+.section-title { font-size: 15px; font-weight: 700; color: var(--color-text-primary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; margin-top: 8px; border-bottom: 2px solid var(--xp-purple); display: inline-block; padding-bottom: 4px; }
+
+/* Water Tracker */
+.water-container { display: flex; justify-content: space-between; margin-bottom: 24px; padding: 16px; background: var(--xp-blue-light); border: 1px solid var(--xp-blue); border-radius: var(--border-radius-lg); }
+.water-glass { font-size: 28px; cursor: pointer; transition: transform 0.2s; filter: grayscale(100%); opacity: 0.5; }
+.water-glass:hover { transform: scale(1.1); }
+.water-glass.filled { filter: grayscale(0%); opacity: 1; animation: pop 0.3s ease; }
+@keyframes pop { 50% { transform: scale(1.3); } }
+
+/* Macro Tracker UI */
+.macro-progress-container { margin-bottom: 16px; }
+.macro-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; font-weight: 600; }
+.macro-track { height: 12px; background: var(--color-border-secondary); border-radius: 6px; overflow: hidden; }
+.macro-fill { height: 100%; border-radius: 6px; transition: width 0.4s ease; }
+.food-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-top: 16px; }
+.food-btn { background: var(--color-background-primary); border: 1px solid var(--color-border-secondary); padding: 10px; border-radius: 8px; cursor: pointer; text-align: left; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
+
+/* Weight Tracker */
+.weight-box { display: flex; gap: 10px; margin-bottom: 20px; }
+.weight-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.weight-item { display: flex; justify-content: space-between; background: var(--color-background-primary); padding: 10px; border: 1px solid var(--color-border-secondary); border-radius: 8px; font-size: 14px; }
+.weight-trend { font-weight: bold; }
+.trend-up { color: var(--xp-green); }
+.trend-down { color: var(--xp-coral); }
+
+/* History / Vault UI */
+.history-textarea { width: 100%; height: 100px; padding: 12px; border-radius: var(--border-radius-md); border: 1px solid var(--color-border-primary); background: var(--color-background-primary); color: var(--color-text-primary); margin-bottom: 12px; font-family: inherit; resize: vertical; }
+.archive-btn { width: 100%; padding: 14px; background: var(--color-text-primary); color: var(--color-background-primary); border: none; border-radius: var(--border-radius-lg); font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 24px; }
+.history-card { background: var(--color-background-secondary); border: 1px solid var(--color-border-secondary); border-radius: var(--border-radius-lg); padding: 16px; margin-bottom: 12px; }
+.history-header { display: flex; justify-content: space-between; font-weight: 800; margin-bottom: 8px; font-size: 15px; color: var(--xp-purple); }
+.history-stats { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 8px; display: flex; gap: 12px; }
+.history-notes { font-size: 14px; line-height: 1.6; padding-top: 8px; border-top: 1px solid var(--color-border-primary); }
+
+/* AI Bot */
+.bot-container { background: var(--color-background-secondary); border: 1px solid var(--color-border-secondary); border-radius: var(--border-radius-lg); padding: 16px; margin-bottom: 16px; }
+.bot-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--color-border-primary); }
+.bot-avatar { width: 40px; height: 40px; background: linear-gradient(135deg, var(--xp-blue), var(--xp-purple)); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; box-shadow: 0 4px 10px rgba(124,58,237,0.3); }
+.bot-title { font-size: 16px; font-weight: 700; color: var(--color-text-primary); }
+.bot-message { background: var(--color-background-primary); border-radius: 12px; border-top-left-radius: 0; padding: 16px; border: 1px solid var(--color-border-secondary); font-size: 14px; line-height: 1.6; margin-bottom: 16px; }
+.bot-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.bot-btn { padding: 10px 16px; background: var(--xp-purple-light); color: var(--xp-purple); border: 1px solid var(--xp-purple); border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; flex: 1; text-align: center; }
+
+/* Focus Modal */
+.focus-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.98); z-index: 1000; display: none; flex-direction: column; align-items: center; justify-content: center; color: white; text-align: center; }
+.focus-timer { font-size: 80px; font-weight: 900; font-variant-numeric: tabular-nums; margin: 20px 0; color: #ef4444; text-shadow: 0 0 20px rgba(239, 68, 68, 0.5); }
+.focus-msg { font-size: 18px; max-width: 400px; line-height: 1.5; color: #cbd5e1; margin-bottom: 40px; }
+.focus-abandon { padding: 12px 24px; background: transparent; color: #94a3b8; border: 1px solid #475569; border-radius: 20px; cursor: pointer; font-size: 14px; transition: 0.2s; }
+.focus-abandon:hover { color: white; border-color: white; }
+
+/* Popups & Particles */
+.reward-pop { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0); background: var(--color-background-primary); border: 2px solid var(--xp-purple); border-radius: var(--border-radius-lg); padding: 24px 32px; text-align: center; z-index: 999; transition: transform .3s cubic-bezier(.34,1.56,.64,1), opacity .2s; opacity: 0; pointer-events: none; min-width: 250px; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
+.reward-pop.show { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+.reward-emoji { font-size: 48px; margin-bottom: 10px; animation: bounce 1s ease infinite; }
+@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+.reward-title { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+.reward-xp { font-size: 24px; font-weight: 800; margin-top: 12px; padding: 4px 16px; border-radius: 20px; }
+
+.particles { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 998; }
+.particle { position: absolute; width: 10px; height: 10px; border-radius: 50%; animation: pfloat 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; opacity: 0; box-shadow: 0 0 10px currentColor; }
+@keyframes pfloat { 0% { opacity: 1; transform: translateY(0) scale(0.5) rotate(0deg); } 50% { opacity: 1; transform: translateY(-60px) scale(1.2) rotate(180deg); } 100% { opacity: 0; transform: translateY(-150px) scale(0.8) rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="app">
+<div class="header-bar">
+  <div>
+    <div class="lvl-badge" id="lvl-badge">Niveau 1</div>
+    <div class="streak-num" id="streak-num">0</div>
+    <div class="streak-lbl">jours de feu</div>
+  </div>
+  <div class="xp-section">
+    <div class="xp-label-row">
+      <span class="xp-label" id="xp-label">Progression</span>
+      <span class="xp-val"><span id="xp-cur">0</span> / <span id="xp-max">200</span> XP</span>
+    </div>
+    <div class="xp-bar-bg">
+      <div class="xp-bar-fill" id="xp-bar" style="width:0%"></div>
+    </div>
+  </div>
+  <div class="hp-box">
+    <div class="hp-hearts" id="hp-display">❤️❤️❤️</div>
+    <div class="streak-lbl" style="margin-top:4px">Vies</div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('taches',this)">🎯 Programme</div>
+  <div class="tab" onclick="showTab('coach',this)">🤖 Coach IA</div>
+  <div class="tab" onclick="showTab('macros',this)">📊 Tracker / Eau</div>
+  <div class="tab" onclick="showTab('coffre',this)">🗄️ Bilan & Poids</div>
+</div>
+
+<!-- TÂCHES PANEL -->
+<div class="panel active" id="panel-taches">
+  <button class="focus-btn-main" onclick="startFocus()">⏱️ Lancer Mode Focus (25 min)</button>
+
+  <div style="font-size:12px; color:var(--color-text-tertiary); margin-bottom:16px;">
+    Coche tes tâches au fur et à mesure. Ton XP global augmentera. Ne perds pas de vies !
+  </div>
+  
+  <!-- LUNDI -->
+  <div class="day-header" data-day-group="Lundi"><span class="day-name">Lundi</span><span class="day-tag dt-sport">Sport</span><span class="day-tag dt-ia">IA</span></div>
+  <div class="task-card" onclick="toggle(this)" data-cat="sport" data-xp="15" data-msg="La machine est lancée !" data-emoji="🔥" data-id="default_1">
+    <div class="task-check"></div>
+    <div class="task-body"><div class="task-title">Calisthénie — full body</div><div class="task-sub">3 tours : pompes · squats · gainage · fentes</div></div>
+    <div class="task-right"><div class="task-emoji">💪</div><div class="task-xp">+15 XP</div></div>
+  </div>
+  <div class="task-card" onclick="toggle(this)" data-cat="ia" data-xp="20" data-id="default_2">
+    <div class="task-check"></div>
+    <div class="task-body"><div class="task-title">IA — comprendre les bases</div><div class="task-sub">"Explique-moi l'IA comme si j'avais 0 base"</div></div>
+    <div class="task-right"><div class="task-emoji">🧠</div><div class="task-xp">+20 XP</div></div>
+  </div>
+
+  <!-- MARDI -->
+  <div class="day-header" data-day-group="Mardi"><span class="day-name">Mardi</span><span class="day-tag dt-combat">Combat</span><span class="day-tag dt-ia">IA</span></div>
+  <div class="task-card" onclick="toggle(this)" data-cat="combat" data-xp="15" data-id="default_3">
+    <div class="task-check"></div>
+    <div class="task-body"><div class="task-title">Combat — shadow boxing</div><div class="task-sub">Jab 3×20 · garde 3×30s · jab+crosse 3×15</div></div>
+    <div class="task-right"><div class="task-emoji">🥊</div><div class="task-xp">+15 XP</div></div>
+  </div>
+  <div class="task-card" onclick="toggle(this)" data-cat="ia" data-xp="20" data-id="default_4">
+    <div class="task-check"></div>
+    <div class="task-body"><div class="task-title">IA — prompt engineering</div><div class="task-sub">Améliore le même prompt 5 fois de suite</div></div>
+    <div class="task-right"><div class="task-emoji">⌨️</div><div class="task-xp">+20 XP</div></div>
+  </div>
+
+  <!-- MERCREDI -->
+  <div class="day-header" data-day-group="Mercredi"><span class="day-name">Mercredi</span><span class="day-tag dt-recup">Récup</span><span class="day-tag dt-ia">IA</span></div>
+  <div class="task-card" onclick="toggle(this)" data-cat="recup" data-xp="10" data-id="default_5">
+    <div class="task-check"></div>
+    <div class="task-body"><div class="task-title">Récupération — étirements</div><div class="task-sub">Ischio · fente basse · pectoraux</div></div>
+    <div class="task-right"><div class="task-emoji">🧘‍♂️</div><div class="task-xp">+10 XP</div></div>
+  </div>
+  <div class="task-card" onclick="toggle(this)" data-cat="biz" data-xp="10" data-id="default_6">
+    <div class="task-check"></div>
+    <div class="task-body"><div class="task-title">Veille — tendances IA</div><div class="task-sub">Lire 2-3 articles récents sur l'IA</div></div>
+    <div class="task-right"><div class="task-emoji">📰</div><div class="task-xp">+10 XP</div></div>
+  </div>
+
+  <!-- JEUDI -->
+  <div class="day-header" data-day-group="Jeudi"><span class="day-name">Jeudi</span><span class="day-tag dt-sport">Sport</span><span class="day-tag dt-ia">IA</span></div>
+  <div class="task-card" onclick="toggle(this)" data-cat="sport" data-xp="15" data-id="default_7">
+    <div class="task-check"></div>
+    <div class="task-body"><div class="task-title">Calisthénie — haut du corps</div><div class="task-sub">3 tours : pompes · dips · gainage strict</div></div>
+    <div class="task-right"><div class="task-emoji">🦍</div><div class="task-xp">+15 XP</div></div>
+  </div>
+  <div class="task-card" onclick="toggle(this)" data-cat="ia" data-xp="25" data-id="default_8">
+    <div class="task-check"></div>
+    <div class="task-body"><div class="task-title">IA — prompts avancés</div><div class="task-sub">Créer 3 prompts pro avec rôle + contexte</div></div>
+    <div class="task-right"><div class="task-emoji">⚡</div><div class="task-xp">+25 XP</div></div>
+  </div>
+
+  <!-- VENDREDI -->
+  <div class="day-header" data-day-group="Vendredi"><span class="day-name">Vendredi</span><span class="day-tag dt-combat">Combat</span><span class="day-tag dt-ia">Bilan</span></div>
+  <div class="task-card" onclick="toggle(this)" data-cat="combat" data-xp="20" data-id="default_9">
+    <div class="task-check"></div>
+    <div class="task-body"><div class="task-title">Combat — enchaînements fluides</div><div class="task-sub">Jab-crosse-crochet · tabata finisher ×8</div></div>
+    <div class="task-right"><div class="task-emoji">🥋</div><div class="task-xp">+20 XP</div></div>
+  </div>
+  <div class="task-card" onclick="toggle(this)" data-cat="ia" data-xp="30" data-id="default_10">
+    <div class="task-check"></div>
+    <div class="task-body"><div class="task-title">Bilan semaine IA</div><div class="task-sub">Produis quelque chose de concret.</div></div>
+    <div class="task-right"><div class="task-emoji">🏆</div><div class="task-xp">+30 XP</div></div>
+  </div>
+
+  <!-- SAMEDI -->
+  <div class="day-header" data-day-group="Samedi"><span class="day-name">Samedi</span><span class="day-tag dt-sport">Sport léger</span></div>
+  <div class="task-card" onclick="toggle(this)" data-cat="sport" data-xp="10" data-id="default_11">
+    <div class="task-check"></div>
+    <div class="task-body"><div class="task-title">Cali léger + combat court</div><div class="task-sub">2 tours circuit · 15 min shadow</div></div>
+    <div class="task-right"><div class="task-emoji">🍃</div><div class="task-xp">+10 XP</div></div>
+  </div>
+
+  <!-- DIMANCHE -->
+  <div class="day-header" data-day-group="Dimanche"><span class="day-name">Dimanche</span><span class="day-tag dt-repos">Repos</span></div>
+  <div class="task-card" onclick="toggle(this)" data-cat="recup" data-xp="10" data-id="default_12">
+    <div class="task-check"></div>
+    <div class="task-body"><div class="task-title">Repos & Réflexion</div><div class="task-sub">Prendre du temps pour soi pour mieux repartir lundi.</div></div>
+    <div class="task-right"><div class="task-emoji">🧘‍♂️</div><div class="task-xp">+10 XP</div></div>
+  </div>
+
+  <!-- AJOUT DE TÂCHE -->
+  <div class="add-task-form">
+    <h4>➕ Ajouter une tâche personnalisée</h4>
+    <input type="text" id="new-task-title" class="add-task-input" placeholder="Ex: Lire un article sur le Machine Learning">
+    <div style="display: flex; gap: 10px;">
+      <select id="new-task-day" class="add-task-input" style="flex: 1;">
+        <option value="Lundi">Lundi</option><option value="Mardi">Mardi</option><option value="Mercredi">Mercredi</option><option value="Jeudi">Jeudi</option><option value="Vendredi">Vendredi</option><option value="Samedi">Samedi</option><option value="Dimanche">Dimanche</option>
+      </select>
+      <select id="new-task-cat" class="add-task-input" style="flex: 1;">
+        <option value="ia">IA</option><option value="biz">Business</option><option value="sport">Sport</option><option value="combat">Combat</option><option value="recup">Récupération</option>
+      </select>
+    </div>
+    <button onclick="addCustomTask()" class="add-task-btn">Créer la tâche (+15 XP)</button>
+  </div>
+</div>
+
+<!-- COACH IA PANEL -->
+<div class="panel" id="panel-coach">
+  <div class="bot-container">
+    <div class="bot-header">
+      <div class="bot-avatar">🤖</div>
+      <div>
+        <div class="bot-title">Coach IA Anti-Procrastination</div>
+        <div class="bot-status">En ligne — Prêt à te motiver</div>
+      </div>
+    </div>
+    <div class="bot-message" id="bot-message">
+      Salut Nolan. J'ai de nouvelles fonctionnalités pour toi : Focus Pomodoro, Tracker d'eau (3L) et Suivi de poids. Que veux-tu savoir ?
+    </div>
+    <div class="bot-actions">
+      <div class="bot-btn" onclick="botAction('programme')">📅 Programme du jour</div>
+      <div class="bot-btn" onclick="botAction('motivation')">🔥 Motive-moi</div>
+      <div class="bot-btn" onclick="botAction('conseil')">💡 Analyse Stats</div>
+    </div>
+  </div>
+</div>
+
+<!-- MACRO TRACKER PANEL -->
+<div class="panel" id="panel-macros">
+  
+  <!-- WATER TRACKER -->
+  <h3 class="section-title">💧 Hydratation (Objectif 3L/jour)</h3>
+  <div class="water-container" id="water-container">
+    <div class="water-glass" onclick="toggleWater(1)">💧</div>
+    <div class="water-glass" onclick="toggleWater(2)">💧</div>
+    <div class="water-glass" onclick="toggleWater(3)">💧</div>
+    <div class="water-glass" onclick="toggleWater(4)">💧</div>
+    <div class="water-glass" onclick="toggleWater(5)">💧</div>
+    <div class="water-glass" onclick="toggleWater(6)">💧</div>
+  </div>
+
+  <h3 class="section-title">Objectif Prise de Masse : 3000 Kcal</h3>
+  <div class="macro-progress-container">
+    <div class="macro-header"><span>Calories (<span id="cal-val">0</span> / 3000 kcal)</span></div>
+    <div class="macro-track"><div class="macro-fill" id="cal-bar" style="width:0%; background:var(--xp-amber)"></div></div>
+  </div>
+  <div class="macro-progress-container">
+    <div class="macro-header"><span>Protéines (<span id="pro-val">0</span> / 150 g)</span></div>
+    <div class="macro-track"><div class="macro-fill" id="pro-bar" style="width:0%; background:var(--xp-coral)"></div></div>
+  </div>
+  <div class="macro-progress-container">
+    <div class="macro-header"><span>Glucides (<span id="glu-val">0</span> / 400 g)</span></div>
+    <div class="macro-track"><div class="macro-fill" id="glu-bar" style="width:0%; background:var(--xp-purple)"></div></div>
+  </div>
+
+  <h3 class="section-title" style="margin-top: 24px;">Ajout Rapide (Spécial Gwada)</h3>
+  <div class="food-grid">
+    <div class="food-btn" onclick="addMacro(70, 6, 0)"><div class="food-icon">🥚</div><div class="food-info"><div class="food-name">1 Œuf dur</div><div class="food-cals">70 kcal | 6g P</div></div></div>
+    <div class="food-btn" onclick="addMacro(105, 1, 27)"><div class="food-icon">🍌</div><div class="food-info"><div class="food-name">1 Banane</div><div class="food-cals">105 kcal | 27g G</div></div></div>
+    <div class="food-btn" onclick="addMacro(120, 24, 0)"><div class="food-icon">🐟</div><div class="food-info"><div class="food-name">100g Poisson</div><div class="food-cals">120 kcal | 24g P</div></div></div>
+    <div class="food-btn" onclick="addMacro(100, 1, 24)"><div class="food-icon">🍠</div><div class="food-info"><div class="food-name">100g Patate D.</div><div class="food-cals">100 kcal | 24g G</div></div></div>
+    <div class="food-btn" onclick="addMacro(600, 35, 60)"><div class="food-icon">🍽️</div><div class="food-info"><div class="food-name">Repas Famille</div><div class="food-cals">~600 kcal | 35g P</div></div></div>
+  </div>
+  
+  <div style="text-align:center; margin-top:20px;">
+    <button class="add-task-btn" style="background:var(--color-border-secondary); color:var(--color-text-primary);" onclick="resetMacros()">Reset Macros & Eau (Nouveau Jour)</button>
+  </div>
+</div>
+
+<!-- COFFRE PANEL (HISTORIQUE & POIDS) -->
+<div class="panel" id="panel-coffre">
+  <h3 class="section-title">📉 Suivi de Poids (Lundi Matin)</h3>
+  <div style="font-size:12px; color:var(--color-text-secondary); margin-bottom:10px;">Objectif : +300g à +500g par semaine. Pèse-toi à jeun.</div>
+  <div class="weight-box">
+    <input type="number" id="weight-input" class="add-task-input" style="margin:0; width:100px" placeholder="Ex: 73.5" step="0.1">
+    <button class="add-task-btn" style="width:auto; margin:0;" onclick="addWeight()">Sauvegarder</button>
+  </div>
+  <div class="weight-list" id="weight-list"></div>
+
+  <h3 class="section-title" style="margin-top:24px;">🗄️ Bilan du Vendredi</h3>
+  <div style="font-size:12px; color:var(--color-text-secondary); margin-bottom:10px;">Écris ce que tu as appris cette semaine, puis archive la semaine pour remettre les tâches à zéro. L'XP et le Streak sont conservés.</div>
+  <textarea id="week-notes" class="history-textarea" placeholder="Bilan de la semaine : Ce qui s'est bien passé, les difficultés, le projet produit..."></textarea>
+  <button class="archive-btn" onclick="archiveWeek()">💾 Sauvegarder & Clôturer la Semaine</button>
+  
+  <h3 class="section-title">Archives</h3>
+  <div id="history-list"></div>
+</div>
+
+</div> <!-- end app -->
+
+<!-- FOCUS MODAL -->
+<div class="focus-modal" id="focus-overlay">
+  <div style="font-size: 60px;">🍅</div>
+  <div class="focus-timer" id="focus-timer-display">25:00</div>
+  <div class="focus-msg">Concentre-toi sur ton projet IA. Ne quitte pas cette page. Terminer ce cycle te rapportera un énorme bonus d'XP.</div>
+  <button class="focus-abandon" onclick="cancelFocus()">Abandonner (Aucun XP)</button>
+</div>
+
+<!-- POPUPS -->
+<div class="particles" id="particles"></div>
+<div class="reward-pop" id="reward-pop">
+  <div class="reward-emoji" id="reward-emoji">🎉</div>
+  <div class="reward-title" id="reward-title">Bien joué !</div>
+  <div class="reward-xp" id="reward-xp" style="background:var(--xp-purple-light); display:inline-block">+0 XP</div>
+</div>
+
+<script>
+const STORAGE_KEY = 'nolan_tracker_v6_ultime';
+let state = { 
+  xp: 0, streak: 0, tasks: {}, lastDate: null, lastLoginDate: null,
+  customTasks: [], macros: { cal: 0, pro: 0, glu: 0 },
+  water: 0, hp: 3, weightHistory: [], history: []
+};
+
+const LVL_XP = [0, 80, 180, 320, 500, 750, 1000];
+const LVL_NAMES = ['Niveau 1 — Novice', 'Niveau 2 — Apprenti', 'Niveau 3 — Déterminé', 'Niveau 4 — Machine', 'Niveau 5 — Expert', 'Niveau 6 — Élite', 'Niveau MAX — Boss'];
+
+function getLevel(xp) { let lvl = 0; for (let i=0; i<LVL_XP.length; i++) { if (xp >= LVL_XP[i]) lvl = i; } return lvl; }
+
+function load() {
+  try {
+    const s = sessionStorage.getItem(STORAGE_KEY);
+    if (s) state = Object.assign(state, JSON.parse(s));
+    if(!state.customTasks) state.customTasks = [];
+    if(!state.macros) state.macros = { cal: 0, pro: 0, glu: 0 };
+    if(state.water === undefined) state.water = 0;
+    if(state.hp === undefined) state.hp = 3;
+    if(!state.weightHistory) state.weightHistory = [];
+    if(!state.history) state.history = [];
+  } catch(e) {}
+
+  checkDailyUpdates();
+}
+
+function save() { try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {} }
+
+function checkDailyUpdates() {
+  const todayStr = new Date().toDateString();
+  
+  if (state.lastDate && state.lastDate !== todayStr) {
+      // Daily macro and water reset
+      state.macros = { cal: 0, pro: 0, glu: 0 };
+      state.water = 0;
+  }
+  
+  // Health Point logic based on missed logins
+  if (state.lastLoginDate && state.lastLoginDate !== todayStr) {
+      const diffTime = Math.abs(new Date(todayStr) - new Date(state.lastLoginDate));
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays > 1) {
+          const lostHp = diffDays - 1;
+          state.hp -= lostHp;
+          if (state.hp <= 0) {
+              state.hp = 3;
+              state.xp = Math.max(0, state.xp - 200);
+              alert("Tu as manqué plusieurs jours... Tu as perdu toutes tes vies et 200 XP. La discipline est la clé, on repart à zéro !");
+          } else {
+              alert(`Tu as manqué ${lostHp} jour(s). Tu perds ${lostHp} point(s) de vie (❤️). Ne laisse pas ton streak mourir !`);
+          }
+          // Streak is lost if a day is completely missed
+          state.streak = 0; 
+      }
+  }
+  
+  state.lastLoginDate = todayStr;
+  state.lastDate = todayStr;
+  save();
+}
+
+function updateUI() {
+  const tasks = document.querySelectorAll('.task-card[data-xp]');
+  tasks.forEach((t) => {
+    const id = t.dataset.id;
+    const isDone = !!state.tasks[id];
+    t.classList.toggle('done', isDone);
+    if (isDone) t.querySelector('.task-check').innerHTML = '✓';
+    else t.querySelector('.task-check').innerHTML = '';
+  });
+
+  const xp = state.xp;
+  const lvl = getLevel(xp);
+  const nextLvlXp = lvl < LVL_XP.length - 1 ? LVL_XP[lvl + 1] : LVL_XP[lvl];
+  const curLvlXp = LVL_XP[lvl];
+  let pct = 100;
+  if (lvl < LVL_XP.length - 1) { pct = Math.min(100, Math.round((xp - curLvlXp) / (nextLvlXp - curLvlXp) * 100)); }
+
+  document.getElementById('xp-cur').textContent = xp;
+  document.getElementById('xp-max').textContent = nextLvlXp === curLvlXp ? 'MAX' : nextLvlXp;
+  document.getElementById('xp-bar').style.width = pct + '%';
+  document.getElementById('lvl-badge').textContent = LVL_NAMES[Math.min(lvl, LVL_NAMES.length - 1)];
+  
+  document.getElementById('streak-num').textContent = state.streak;
+  document.getElementById('streak-num').style.color = state.streak > 0 ? '#fbbf24' : 'var(--color-text-secondary)';
+
+  // Update HP
+  let hearts = '';
+  for(let i=0; i<3; i++) { hearts += i < state.hp ? '❤️' : '🖤'; }
+  document.getElementById('hp-display').innerHTML = hearts;
+
+  // Update Macros UI
+  if(document.getElementById('cal-val')) {
+    document.getElementById('cal-val').textContent = state.macros.cal;
+    document.getElementById('pro-val').textContent = state.macros.pro;
+    document.getElementById('glu-val').textContent = state.macros.glu;
+    document.getElementById('cal-bar').style.width = Math.min(100, (state.macros.cal / 3000) * 100) + '%';
+    document.getElementById('pro-bar').style.width = Math.min(100, (state.macros.pro / 150) * 100) + '%';
+    document.getElementById('glu-bar').style.width = Math.min(100, (state.macros.glu / 400) * 100) + '%';
+  }
+
+  // Update Water UI
+  if(document.getElementById('water-container')) {
+      const glasses = document.getElementById('water-container').children;
+      for(let i=0; i<6; i++) {
+          if(i < state.water) glasses[i].classList.add('filled');
+          else glasses[i].classList.remove('filled');
+      }
+  }
+
+  renderWeightHistory();
+  renderHistory();
+}
+
+function showReward(msg, emoji, xpGain, cat) {
+  const pop = document.getElementById('reward-pop');
+  let glow = '#7C3AED';
+  if(cat === 'sport') glow = '#10B981';
+  if(cat === 'combat') glow = '#F43F5E';
+  if(cat === 'water') glow = '#3B82F6';
+  
+  pop.style.borderColor = glow;
+  pop.style.boxShadow = `0 10px 40px -10px ${glow}`;
+  document.getElementById('reward-emoji').textContent = emoji;
+  document.getElementById('reward-title').textContent = msg;
+  document.getElementById('reward-xp').textContent = '+' + xpGain + ' XP';
+  document.getElementById('reward-xp').style.color = glow;
+  
+  pop.classList.add('show');
+  
+  const container = document.getElementById('particles');
+  const colors = [glow, '#ffffff'];
+  for (let i = 0; i < 25; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left = (40 + Math.random() * 20) + '%';
+    p.style.top = '50%';
+    p.style.background = colors[Math.floor(Math.random() * colors.length)];
+    const tx = (Math.random() - 0.5) * 300;
+    const ty = (Math.random() - 1) * 300;
+    p.style.setProperty('--tx', `${tx}px`);
+    p.style.setProperty('--ty', `${ty}px`);
+    p.style.animationDuration = (0.6 + Math.random() * 0.8) + 's';
+    container.appendChild(p);
+    setTimeout(() => p.remove(), 1500);
+  }
+  
+  if(window.navigator && window.navigator.vibrate) window.navigator.vibrate([50, 50, 50]);
+  setTimeout(() => pop.classList.remove('show'), 2000);
+}
+
+function toggle(el) {
+  const id = el.dataset.id;
+  const wasDone = !!state.tasks[id];
+  const xpGain = parseInt(el.dataset.xp) || 10;
+  const cat = el.dataset.cat || 'ia';
+
+  if (!wasDone) {
+    state.tasks[id] = true;
+    state.xp += xpGain;
+    
+    // Only increment streak if it's a new task done today, but let's keep simple:
+    // If they do at least 1 task today, it maintains the streak. Handled by login logic mostly.
+    // Let's just add 1 to streak when doing tasks to make it feel rewarding.
+    state.streak += 1;
+    
+    showReward(el.dataset.msg || 'Tâche accomplie !', el.dataset.emoji || '🔥', xpGain, cat);
+  } else {
+    state.tasks[id] = false;
+    state.xp = Math.max(0, state.xp - xpGain);
+  }
+  save();
+  updateUI();
+}
+
+/* Feature 1: Water */
+function toggleWater(glassNum) {
+    // If clicking the current max glass, unfill it. Otherwise fill up to that number.
+    if(state.water === glassNum) state.water = glassNum - 1;
+    else {
+        let oldWater = state.water;
+        state.water = glassNum;
+        if(state.water === 6 && oldWater < 6) {
+            state.xp += 15;
+            showReward("Objectif Eau Atteint (3L) !", "🌊", 15, 'water');
+        }
+    }
+    save(); updateUI();
+}
+
+/* Feature 2: Pomodoro Focus */
+let focusInterval;
+let focusTime = 1500;
+function startFocus() {
+    document.getElementById('focus-overlay').style.display = 'flex';
+    focusTime = 1500;
+    updateFocusDisplay();
+    focusInterval = setInterval(() => {
+        focusTime--;
+        updateFocusDisplay();
+        if(focusTime <= 0) {
+            clearInterval(focusInterval);
+            document.getElementById('focus-overlay').style.display = 'none';
+            state.xp += 50;
+            showReward("Session Focus Validée !", "🍅", 50, 'ia');
+            save(); updateUI();
+        }
+    }, 1000);
+}
+function cancelFocus() {
+    clearInterval(focusInterval);
+    document.getElementById('focus-overlay').style.display = 'none';
+}
+function updateFocusDisplay() {
+    let m = Math.floor(focusTime / 60).toString().padStart(2, '0');
+    let s = (focusTime % 60).toString().padStart(2, '0');
+    document.getElementById('focus-timer-display').innerText = `${m}:${s}`;
+}
+
+/* Feature 3: Weight */
+function addWeight() {
+    const input = document.getElementById('weight-input').value;
+    if(!input) return;
+    const w = parseFloat(input);
+    state.weightHistory.push({ date: new Date().toLocaleDateString(), weight: w });
+    state.xp += 10;
+    save(); updateUI();
+    document.getElementById('weight-input').value = '';
+    showReward("Poids enregistré !", "⚖️", 10, 'sport');
+}
+function renderWeightHistory() {
+    const list = document.getElementById('weight-list');
+    if(!list) return;
+    list.innerHTML = '';
+    for(let i = state.weightHistory.length - 1; i >= 0; i--) {
+        const item = state.weightHistory[i];
+        let diffHtml = '';
+        if(i > 0) {
+            const diff = (item.weight - state.weightHistory[i-1].weight).toFixed(1);
+            if(diff > 0) diffHtml = `<span class="weight-trend trend-up">▲ +${diff}kg</span>`;
+            else if(diff < 0) diffHtml = `<span class="weight-trend trend-down">▼ ${diff}kg</span>`;
+            else diffHtml = `<span style="color:var(--color-text-tertiary)">= 0kg</span>`;
+        }
+        list.innerHTML += `<div class="weight-item"><span>${item.date}</span><span><b>${item.weight} kg</b> &nbsp; ${diffHtml}</span></div>`;
+    }
+}
+
+/* Feature 5: History / Vault */
+function archiveWeek() {
+    const notes = document.getElementById('week-notes').value;
+    state.history.push({
+        date: new Date().toLocaleDateString(),
+        xp: state.xp,
+        streak: state.streak,
+        notes: notes || "Aucun bilan écrit."
+    });
+    // Reset week
+    state.tasks = {};
+    state.macros = { cal: 0, pro: 0, glu: 0 };
+    state.water = 0;
+    document.getElementById('week-notes').value = '';
+    save(); updateUI();
+    showReward("Semaine Clôturée !", "🗄️", 50, 'ia');
+}
+function renderHistory() {
+    const list = document.getElementById('history-list');
+    if(!list) return;
+    list.innerHTML = '';
+    [...state.history].reverse().forEach(h => {
+        list.innerHTML += `
+        <div class="history-card">
+            <div class="history-header"><span>Semaine du ${h.date}</span></div>
+            <div class="history-stats"><span>⭐ XP Global : ${h.xp}</span><span>🔥 Streak Max : ${h.streak}</span></div>
+            <div class="history-notes">${h.notes}</div>
+        </div>`;
+    });
+}
+
+function addMacro(cal, pro, glu) { state.macros.cal += cal; state.macros.pro += pro; state.macros.glu += glu; save(); updateUI(); }
+function resetMacros() { state.macros = { cal: 0, pro: 0, glu: 0 }; state.water = 0; save(); updateUI(); }
+
+function addCustomTask() {
+  const title = document.getElementById('new-task-title').value.trim();
+  const day = document.getElementById('new-task-day').value;
+  const cat = document.getElementById('new-task-cat').value;
+  if (!title) { alert("N'oublie pas de donner un titre à ta tâche !"); return; }
+  state.customTasks.push({ id: 'custom_' + Date.now(), title: title, day: day, cat: cat, xp: 15, emoji: '🎯' });
+  save(); renderCustomTasks(); document.getElementById('new-task-title').value = '';
+}
+function renderCustomTasks() {
+  document.querySelectorAll('.custom-task-rendered').forEach(el => el.remove());
+  state.customTasks.forEach(task => {
+      const header = document.querySelector(`.day-header[data-day-group="${task.day}"]`);
+      if (header) {
+          header.insertAdjacentHTML('afterend', `
+          <div class="task-card custom-task-rendered" onclick="toggle(this)" data-id="${task.id}" data-cat="${task.cat}" data-xp="${task.xp}">
+            <div class="task-check"></div>
+            <div class="task-body"><div class="task-title">${task.title}</div><div class="task-sub">Tâche perso</div></div>
+            <div class="task-right"><div class="task-emoji">${task.emoji}</div><div class="task-xp">+${task.xp} XP</div></div>
+          </div>`);
+      }
+  });
+  updateUI();
+}
+
+function botAction(action) {
+  const msgBox = document.getElementById('bot-message');
+  let response = "";
+  if (action === 'programme') {
+    const dayNames = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+    const today = new Date().getDay();
+    const dayName = dayNames[today];
+    let prog = "";
+    if(today === 1) prog = "<strong>Calisthénie</strong> et une <strong>Intro à l'IA</strong>. Pèse-toi !";
+    else if(today === 2) prog = "<strong>Shadow Boxing</strong> et <strong>Prompt Engineering</strong>.";
+    else if(today === 3) prog = "<strong>Récupération</strong> et de la <strong>Veille IA</strong>.";
+    else if(today === 4) prog = "<strong>Haut du Corps</strong> et <strong>Prompts Avancés</strong>.";
+    else if(today === 5) prog = "<strong>Enchaînements</strong> et ton <strong>Bilan Semaine</strong> dans l'onglet Coffre !";
+    else if(today === 6) prog = "<strong>Sport Léger</strong>. Ne force pas trop.";
+    else if(today === 0) prog = "<strong>Repos Total</strong>. On ne fait rien aujourd'hui.";
+    response = `Aujourd'hui nous sommes <strong>${dayName}</strong>. Ta mission : ${prog}`;
+  } 
+  else if (action === 'motivation') {
+    response = `Tu as ${state.hp} Vies restantes et un streak de ${state.streak}. Ne brise pas la chaîne. Lance le chronomètre Pomodoro de 25 min si tu as la flemme !`;
+  }
+  else if (action === 'conseil') {
+      let weightMsg = state.weightHistory.length >= 2 ? 
+        (state.weightHistory[state.weightHistory.length-1].weight > state.weightHistory[state.weightHistory.length-2].weight ? "Ta prise de masse est sur la bonne voie." : "Ton poids stagne, ajoute du riz !") : "Remplis ton poids dans l'onglet Coffre.";
+      response = `N'oublie pas : Objectif 3L d'eau/jour dans l'onglet Tracker. Côté poids : ${weightMsg}`;
+  }
+  msgBox.innerHTML = "<span style='opacity:0.5'>Analyse en cours...</span>";
+  setTimeout(() => { msgBox.innerHTML = response; }, 600);
+}
+
+function showTab(id, tabEl) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  if (tabEl) tabEl.classList.add('active');
+}
+
+load(); renderCustomTasks();
+</script>
+</body>
+</html>
