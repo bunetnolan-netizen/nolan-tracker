@@ -1,11 +1,44 @@
 import streamlit as st
 import pdfplumber
-import re
 
 # Configuration de la page
 st.set_page_config(page_title="Anti-Fraude Locative - Local Scanner", page_icon="🕵️‍♂️", layout="centered")
 
-st.title("🕵️‍♂️ Anti-Fraude Locative — Scanner Local")
+# --- SYSTÈME DE SÉCURITÉ (MOT DE PASSE) ---
+def verifier_mot_de_passe():
+    """Retourne True si le mot de passe est correct, sinon affiche l'écran de connexion."""
+    if "authentifie" not in st.session_state:
+        st.session_state.authentifie = False
+
+    if st.session_state.authentifie:
+        return True
+
+    # Écran de connexion
+    st.markdown("<h1 style='text-align: center;'>🔒 Accès Sécurisé</h1>", unsafe_allow_html=True)
+    st.write("Cet outil est privé. Veuillez vous authentifier pour accéder au scanner anti-fraude.")
+    
+    # --- CHOISIS TON MOT DE PASSE ICI ---
+    MOT_DE_PASSE_ATTENDU = "Nolan18!!" 
+    
+    mot_de_passe_saisi = st.text_input("Entrez le mot de passe :", type="password")
+    bouton_connexion = st.button("Se connecter", use_container_width=True)
+    
+    if bouton_connexion:
+        if mot_de_passe_saisi == MOT_DE_PASSE_ATTENDU:
+            st.session_state.authentifie = True
+            st.rerun()
+        else:
+            st.error("❌ Mot de passe incorrect. Accès refusé.")
+            
+    return False
+
+# Si l'utilisateur n'est pas connecté, on arrête l'exécution ici
+if not verifier_mot_de_passe():
+    st.stop()
+
+
+# --- CODE DE L'APPLICATION (ACCESSIBLE UNIQUEMENT SI CONNECTÉ) ---
+st.title("🕵️‍♂️ Anti-Fraude Locative — Scanner Professionnel")
 st.write("Analyse sécurisée des documents. Zéro fuite de données.")
 
 st.markdown("---")
@@ -22,14 +55,13 @@ with col2:
     cumul_net = st.number_input("Cumul Net Imposable indiqué en bas de page (€)", min_value=0.0, value=0.0, step=100.0)
 
 if net_mensuel > 0 and cumul_net > 0:
-    # Calcul théorique attendu
     cumul_theorique = net_mensuel * mois_cumule
     ecart = abs(cumul_theorique - cumul_net)
     marge_tolerance = cumul_theorique * 0.15 # Marge pour variations (primes, heures sup)
     
     st.markdown("#### **Résultat de l'analyse logique :**")
     if ecart <= marge_tolerance:
-        st.success(f"🟢 COHÉRENT : L'écart est de {ecart:.2f}€. Les calculs concordent globalement avec le mois de l'année.")
+        st.success(f"🟢 COHÉRENT : L'écart est de {ecart:.2f}€. Les calculs concordent globalement.")
     else:
         st.error(f"🔴 SUSPECT : Écart important de {ecart:.2f}€ entre le salaire mensuel et le cumul annuel indiqué !")
 
@@ -37,7 +69,7 @@ st.markdown("---")
 
 # 📄 SECTION 2 : EXTRACTION DU TEXTE DU PDF
 st.subheader("📄 2. Extraction & Analyse de Document (PDF)")
-uploaded_file = st.file_uploader("Glissez-déposez le PDF d'un bulletin ou avis d'imposition ici", type="pdf")
+uploaded_file = st.file_uploader("Glissez-deposez le PDF d'un bulletin ou avis d'imposition ici", type="pdf")
 
 if uploaded_file is not None:
     with st.spinner("Extraction du texte en cours..."):
@@ -50,14 +82,12 @@ if uploaded_file is not None:
         
         st.info("✅ Texte extrait avec succès. Analyse des mots-clés de contrôle...")
         
-        # Recherche de patterns ou d'mots-clés essentiels
         mots_cles = ["cumul", "imposable", "net à payer", "revenu fiscal"]
         st.markdown("**Éléments clés repérés dans le document :**")
         for mot in mots_cles:
             if mot in full_text.lower():
                 st.write(f"✔️ Terme détecté : *'{mot}'*")
         
-        # Affichage du texte brut pour vérification visuelle des lignes
         with st.expander("👁️ Voir le texte intégral extrait (Pour vérifier les décalages ou anomalies)"):
             st.text(full_text)
 
@@ -65,7 +95,7 @@ st.markdown("---")
 
 # 🔗 SECTION 3 : RACCOURCIS OFFICIELS
 st.subheader("🔗 3. Lien de Vérification Officiel")
-st.write("Utilisez l'outil officiel de l'État pour vérifier l'authenticité de l'avis d'imposition avec les codes fournis par le candidat :")
+st.write("Utilisez l'outil officiel de l'État pour vérifier l'authenticité de l'avis d'imposition :")
 st.markdown("[Accéder au Vérificateur d'Avis d'Impôt - Impots.gouv](https://cfspart.impots.gouv.fr/fraude/avis)", unsafe_view=True)
 
 st.caption("🔒 Sécurité : Aucune donnée n'est stockée en ligne. Tout reste en mémoire vive locale.")
