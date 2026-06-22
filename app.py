@@ -22,7 +22,7 @@ if not st.session_state["authentifie"]:
     st.title("🔒 Accès Sécurisé - Anti-Fraude Scanner")
     mdp_saisi = st.text_input("Veuillez entrer le mot de passe expert :", type="password")
     if st.button("Se connecter"):
-        if mdp_saisi == MOT_DE_ATTENDU:
+        if mdp_saisi == MOT_DE_PASSE_ATTENDU:  # <- Correction apportée ici !
             st.session_state["authentifie"] = True
             st.rerun()
         else:
@@ -33,7 +33,7 @@ if not st.session_state["authentifie"]:
 st.title("🕵️‍♂️ Anti-Fraude Scanner — Espace Expert")
 st.subheader("Analyse de cohérence logique & graphique en temps réel")
 
-# --- SECTION GANAGNE / OBJECTIFS (GAMIFICATION) ---
+# --- SECTION GAGNE / OBJECTIFS (GAMIFICATION) ---
 col_cagnotte, col_bouton = st.columns([2, 1])
 
 with col_cagnotte:
@@ -48,7 +48,7 @@ with col_bouton:
         st.session_state["cagnotte"] += 15.0
         st.rerun()
 
-# --- NOUVEAU BANDEAU DE CONFORMITÉ RÉGLEMENTAIRE (RGPD & AI ACT 2026) ---
+# --- BANDEAU DE CONFORMITÉ RÉGLEMENTAIRE (RGPD & AI ACT 2026) ---
 st.info("""
 ⚖️ **Conformité Réglementaire & Sécurité (RGPD & AI Act 2026)**
 * **Zéro Stockage :** Les fichiers téléchargés sont traités exclusivement en mémoire vive (RAM) et sont définitivement détruits dès la fermeture de la session. Aucune base de données n'est conservée.
@@ -184,7 +184,7 @@ def generer_pdf_rapport(statut, net, cumul, mois, ecart_val):
     if statut == "🟢 FIABLE":
         pdf.multi_cell(0, 8, "Les verifications mathematiques et logiques n'ont revele aucune anomalie. Les montants cumules correspondent aux declarations mensuelles transmises.")
     elif statut == "🔴 SUSPECT":
-        pdf.multi_cell(0, 8, "ATTENTION : Une anomalie mathematique critique a ete identifiee entre le net mensuel et les cumuls fiscaux declarés. Risque eleve de falsification numerique.")
+        pdf.multi_cell(0, 8, "ATTENTION : Une anomalie mathematique critique a ete identifiee entre le net mensuel et les cumuls fiscaux declares. Risque eleve de falsification numerique.")
     else:
         pdf.multi_cell(0, 8, "Dossier en attente de pieces complementaires ou de saisie de donnees.")
     
@@ -200,7 +200,7 @@ def generer_pdf_rapport(statut, net, cumul, mois, ecart_val):
         "Conformement au Reglement General sur la Protection des Donnees (RGPD), le prestataire certifie "
         "qu'aucune donnee personnelle ou piece justificative analysee n'est conservee, stockee ou partagee. "
         "L'integralite des fichiers sources (bulletins de salaire, avis d'imposition) a ete definitivement "
-        "detruite des la cloture de cet audit. Cet audit est un avis technique base sur la coherence "
+        "detruite des la cloture de cet audit. Cet audit is un avis technique base sur la coherence "
         "logique du document et ne constitue pas une garantie d'impaye."
     )
     pdf.multi_cell(0, 5, clause_rgpd)
