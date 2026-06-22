@@ -2,7 +2,6 @@ import streamlit as st
 import pdfplumber
 import re
 from fpdf import FPDF
-import io
 import smtplib
 from email.message import EmailMessage
 
@@ -21,8 +20,8 @@ if "cagnotte" not in st.session_state:
 MOT_DE_PASSE_ATTENDU = "Nolan18!!" 
 
 # Identifiants pour l'envoi d'e-mail automatique
-EMAIL_EXPEDITEUR = "bunetnolan@gmail.com" # Remplace par ton adresse e-mail pro
-MOT_DE_PASSE_EMAIL = "uimd wahc rnbg enmh" # Remplace par ton mot de passe d'application Google
+EMAIL_EXPEDITEUR = "bunetnolan@gmail.com" 
+MOT_DE_PASSE_EMAIL = "uimd wahc rnbg enmh" 
 # ==========================================
 
 # Écran de connexion
@@ -62,7 +61,7 @@ st.info("""
 """)
 st.write("---")
 
-# 3. FONCTIONS D'EXTRACTION
+# 3. FONCTIONS D'EXTRACTION ET D'EMAIL
 def extraire_texte_pdf(fichier_pdf):
     texte_complet = ""
     with pdfplumber.open(fichier_pdf) as pdf:
@@ -89,7 +88,6 @@ def analyser_montants_regex(texte):
     return net_payer, cumul_imposable
 
 def envoyer_rapport_email(email_destinataire, donnees_pdf, nom_fichier):
-    """Fonction pour envoyer le PDF par e-mail en tâche de fond"""
     msg = EmailMessage()
     msg['Subject'] = "🔒 Votre Rapport d'Audit Anti-Fraude (Confidentiel)"
     msg['From'] = f"Service Audit <{EMAIL_EXPEDITEUR}>"
@@ -110,7 +108,6 @@ Votre Expert Anti-Fraude"""
     msg.add_attachment(donnees_pdf, maintype='application', subtype='pdf', filename=nom_fichier)
 
     try:
-        # Configuration pour serveur Gmail (si tu utilises Outlook ou autre, le serveur smtp change)
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
             smtp.login(EMAIL_EXPEDITEUR, MOT_DE_PASSE_EMAIL)
             smtp.send_message(msg)
@@ -141,6 +138,8 @@ st.header("📊 Étape 2 : Diagnostic de Cohérence Financière")
 attendu_cumul = net_saisi * nb_mois
 ecart = abs(cumul_saisi - attendu_cumul)
 
+statut_global = "🟡 VIGILANCE"
+
 if net_saisi > 0 and cumul_saisi > 0:
     st.write(f"**Cumul théorique attendu :** {attendu_cumul:.2f} €")
     st.write(f"**Cumul réel déclaré :** {cumul_saisi:.2f} €")
@@ -150,8 +149,6 @@ if net_saisi > 0 and cumul_saisi > 0:
     else:
         statut_global = "🔴 SUSPECT"
         st.error(f"⚠️ {statut_global} — Incohérence majeure ! Écart : {ecart:.2f} €.")
-else:
-    statut_global = "🟡 VIGILANCE"
 
 # 6. GÉNÉRATION DU PDF ET ENVOI
 st.header("📥 Étape 3 : Livraison du Rapport")
@@ -159,14 +156,20 @@ st.header("📥 Étape 3 : Livraison du Rapport")
 def generer_pdf_rapport(statut, net, cumul, mois, ecart_val):
     pdf = FPDF()
     pdf.add_page()
+    
+    # NETTOYAGE : On retire l'emoji pour que le PDF ne plante pas
+    statut_propre = statut.replace("🟢 ", "").replace("🔴 ", "").replace("🟡 ", "")
+    
     pdf.set_font("Arial", "B", 16)
     pdf.cell(0, 10, "RAPPORT D'AUDIT ANTI-FRAUDE IMMOBILIERE", ln=True, align="C")
     pdf.line(10, 30, 200, 30)
     pdf.ln(10)
     
     pdf.set_font("Arial", "B", 12)
-    pdf.cell(0, 10, f"Statut Global : {statut}", ln=True)
+    # Utilisation de la variable propre (sans emoji)
+    pdf.cell(0, 10, f"Statut Global : {statut_propre}", ln=True)
     pdf.ln(5)
+    
     pdf.set_font("Arial", "", 11)
     pdf.cell(0, 8, f"- Montant net mensuel analyse : {net:.2f} EUR", ln=True)
     pdf.cell(0, 8, f"- Cumul net imposable declare : {cumul:.2f} EUR (sur {mois} mois)", ln=True)
@@ -180,19 +183,17 @@ def generer_pdf_rapport(statut, net, cumul, mois, ecart_val):
 
 if net_saisi > 0 and cumul_saisi > 0:
     donnees_pdf = generer_pdf_rapport(statut_global, net_saisi, cumul_saisi, nb_mois, ecart)
-    nom_fichier_export = f"Rapport_Audit_{statut_global.replace(' ', '_')}.pdf"
+    nom_fichier_export = f"Rapport_Audit_{statut_global.replace(' ', '_').replace('🟢_', '').replace('🔴_', '').replace('🟡_', '')}.pdf"
     
-    # Bouton de téléchargement classique
     st.download_button(label="📥 Télécharger le Rapport (PDF)", data=donnees_pdf, file_name=nom_fichier_export, mime="application/pdf")
     
     st.write("---")
     st.subheader("📧 Envoi direct au client")
-    email_client = st.text_input("Adresse e-mail du propriétaire (Optionnel) :", placeholder="exemple@client.com") [cite: 59]
+    email_client = st.text_input("Adresse e-mail du propriétaire (Optionnel) :", placeholder="exemple@client.com")
     
     if st.button("🚀 Envoyer le rapport par e-mail"):
         with st.spinner("Envoi de l'e-mail en cours..."):
             if email_client:
-                # Tentative d'envoi de l'email
                 succes = envoyer_rapport_email(email_client, donnees_pdf, nom_fichier_export)
                 if succes:
                     st.success(f"✅ Le rapport a été envoyé avec succès à l'adresse : {email_client}")
