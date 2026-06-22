@@ -96,6 +96,6 @@ st.markdown("---")
 # 🔗 SECTION 3 : RACCOURCIS OFFICIELS
 st.subheader("🔗 3. Lien de Vérification Officiel")
 st.write("Utilisez l'outil officiel de l'État pour vérifier l'authenticité de l'avis d'imposition :")
-st.markdown("[Accéder au Vérificateur d'Avis d'Impôt - Impots.gouv](https://cfspart.impots.gouv.fr/fraude/avis)", unsafe_view=True)
+st.markdown("[Accéder au Vérificateur d'Avis d'Impôt - Impots.gouv](https://cfspart.impots.gouv.fr/fraude/avis)")
 
 st.caption("🔒 Sécurité : Aucune donnée n'est stockée en ligne. Tout reste en mémoire vive locale.")
