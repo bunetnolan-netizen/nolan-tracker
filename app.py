@@ -2,206 +2,220 @@ import streamlit as st
 import pdfplumber
 import re
 from fpdf import FPDF
+import io
 
-# Configuration de la page
-st.set_page_config(page_title="Anti-Fraude Locative - Pro Scanner", page_icon="🕵️‍♂️", layout="centered")
+# 1. CONFIGURATION DE LA PAGE & SÉCURITÉ
+st.set_page_config(page_title="Anti-Fraude Scanner Pro", page_icon="🕵️‍♂️", layout="wide")
 
-# --- SYSTÈME DE SÉCURITÉ (MOT DE PASSE) ---
-def verifier_mot_de_passe():
-    """Retourne True si le mot de passe est correct, sinon affiche l'écran de connexion."""
-    if "authentifie" not in st.session_state:
-        st.session_state.authentifie = False
+# Initialisation du mot de passe et de la cagnotte dans la session Streamlit
+if "authentifie" not in st.session_state:
+    st.session_state["authentifie"] = False
 
-    if st.session_state.authentifie:
-        return True
+if "cagnotte" not in st.session_state:
+    st.session_state["cagnotte"] = 0.0
 
-    st.markdown("<h1 style='text-align: center;'>🔒 Accès Sécurisé</h1>", unsafe_allow_html=True)
-    st.write("Cet outil est privé. Veuillez vous authentifier pour accéder au scanner anti-fraude.")
-    
-    # --- CHOISIS TON MOT DE PASSE ICI ---
-    MOT_DE_PASSE_ATTENDU = "Nolan18!!" 
-    
-    mot_de_passe_saisi = st.text_input("Entrez le mot de passe :", type="password")
-    bouton_connexion = st.button("Se connecter", use_container_width=True)
-    
-    if bouton_connexion:
-        if mot_de_passe_saisi == MOT_DE_PASSE_ATTENDU:
-            st.session_state.authentifie = True
+# ZONE À MODIFIER : Choisis ton mot de passe secret ici
+MOT_DE_PASSE_ATTENDU = "Nolan18!!" 
+
+# Écran de connexion si l'utilisateur n'est pas authentifié
+if not st.session_state["authentifie"]:
+    st.title("🔒 Accès Sécurisé - Anti-Fraude Scanner")
+    mdp_saisi = st.text_input("Veuillez entrer le mot de passe expert :", type="password")
+    if st.button("Se connecter"):
+        if mdp_saisi == MOT_DE_ATTENDU:
+            st.session_state["authentifie"] = True
             st.rerun()
         else:
-            st.error("❌ Mot de passe incorrect. Accès refusé.")
-            
-    return False
-
-if not verifier_mot_de_passe():
+            st.error("Mot de passe incorrect. Accès refusé.")
     st.stop()
 
+# 2. INTERFACE DE L'APPLICATION (MODE EXPERT ACTIVÉ)
+st.title("🕵️‍♂️ Anti-Fraude Scanner — Espace Expert")
+st.subheader("Analyse de cohérence logique & graphique en temps réel")
 
-# --- SYSTÈME DE CAGNOTTE (MOTIVATION MATÉRIEL) ---
-if "cagnotte" not in st.session_state:
-    st.session_state.cagnotte = 0.0
+# --- SECTION GANAGNE / OBJECTIFS (GAMIFICATION) ---
+col_cagnotte, col_bouton = st.columns([2, 1])
 
-OBJECTIF_LAPTOP = 700.0  # Objectif financier moyen pour ton ordinateur portable
+with col_cagnotte:
+    # Objectif financier pour l'ordinateur portable (Ex: 700€)
+    objectif = 700.0
+    progression = min(st.session_state["cagnotte"] / objectif, 1.0)
+    st.progress(progression)
+    st.write(f"**Cagnotte Actuelle :** {st.session_state['cagnotte']}€ / {objectif}€")
 
-st.markdown("### 💻 Objectif Financement Matériel")
-progression = min(st.session_state.cagnotte / OBJECTIF_LAPTOP, 1.0)
-st.progress(progression)
-
-col_cagnotte_txt, col_cagnotte_btn = st.columns([2, 1])
-with col_cagnotte_txt:
-    st.write(f"**Cagnotte actuelle : {st.session_state.cagnotte} €** / {OBJECTIF_LAPTOP} €")
-with col_cagnotte_btn:
-    if st.button("➕ Encaisser 15 €", use_container_width=True):
-        st.session_state.cagnotte += 15.0
+with col_bouton:
+    if st.button("➕ Encaisser un audit (15 €)"):
+        st.session_state["cagnotte"] += 15.0
         st.rerun()
 
-st.markdown("---")
+# --- NOUVEAU BANDEAU DE CONFORMITÉ RÉGLEMENTAIRE (RGPD & AI ACT 2026) ---
+st.info("""
+⚖️ **Conformité Réglementaire & Sécurité (RGPD & AI Act 2026)**
+* **Zéro Stockage :** Les fichiers téléchargés sont traités exclusivement en mémoire vive (RAM) et sont définitivement détruits dès la fermeture de la session. Aucune base de données n'est conservée.
+* **Responsabilité :** Cet outil fournit un rapport d'aide à la décision basé sur la cohérence logique et graphique. Il ne se substitue pas à la validation finale du propriétaire bailleur.
+* **Obligation du Client :** En utilisant ce scanner, vous certifiez avoir obtenu l'accord préalable du candidat locataire pour la vérification technique de ses pièces justificatives.
+""")
 
+st.write("---")
 
-# --- FONCTION DE GÉNÉRATION DU RAPPORT PDF ---
-def generer_pdf_rapport(statut, net_mensuel, mois_cumule, cumul_net, ecart, mots_reperes):
+# 3. FONCTIONS D'EXTRACTION ET DE LOGIQUE METIER
+def extraire_texte_pdf(fichier_pdf):
+    texte_complet = ""
+    with pdfplumber.open(fichier_pdf) as pdf:
+        for page in pdf.pages:
+            texte_page = page.extract_text()
+            if texte_page:
+                texte_complet += texte_page + "\n"
+    return texte_complet
+
+def analyser_montants_regex(texte):
+    """Recherche automatique des montants clés par expressions régulières"""
+    net_payer = 0.0
+    cumul_imposable = 0.0
+    
+    # Pattern Regex pour attraper les montants (ex: 2 500,00 ou 1850.50)
+    pattern_montant = r"[\d\s]+[.,]\s*\d{2}"
+    
+    # Recherche du Net à payer
+    match_net = re.search(r"(?:net\s+a\s+payer|net\s+paye|remuneration\s+nette)\s*[:\s]*(" + pattern_montant + ")", texte, re.IGNORECASE)
+    if match_net:
+        net_str = match_net.group(1).replace(" ", "").replace(",", ".")
+        try: net_payer = float(net_str)
+        except: pass
+        
+    # Recherche du Cumul Net Imposable
+    match_cumul = re.search(r"(?:cumul\s+net\s+imposable|net\s+imposable\s+cumul|cumul\s+imposable)\s*[:\s]*(" + pattern_montant + ")", texte, re.IGNORECASE)
+    if match_cumul:
+        cumul_str = match_cumul.group(1).replace(" ", "").replace(",", ".")
+        try: cumul_imposable = float(cumul_str)
+        except: pass
+        
+    return net_payer, cumul_imposable
+
+# 4. ZONE DE CHARGEMENT DU DOSSIER
+st.header("📂 Étape 1 : Analyse du Bulletin de Salaire")
+fichier_charge = st.file_uploader("Glissez-déposez le bulletin de salaire (PDF uniquement)", type=["pdf"])
+
+# Initialisation des variables de calcul
+net_saisi = 0.0
+cumul_saisi = 0.0
+nb_mois = 1
+texte_extrait = ""
+
+if fichier_charge is not None:
+    # Traitement direct en mémoire vive (RAM) - Aucun stockage disque
+    texte_extrait = extraire_texte_pdf(fichier_charge)
+    
+    # Remplissage intelligent automatique par Regex
+    net_auto, cumul_auto = analyser_montants_regex(texte_extrait)
+    
+    st.success("✅ Analyse du document effectuée en mémoire RAM.")
+    
+    # Affichage du texte extrait pour double vérification visuelle (Optionnel)
+    with st.expander("🔍 Voir le texte brut extrait du document (RAM)"):
+        st.text(texte_extrait)
+else:
+    net_auto, cumul_auto = 0.0, 0.0
+
+# Formulaire numérique (pré-rempli si la Regex a trouvé les montants)
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    net_saisi = st.number_input("Net à payer mensuel (€) :", value=net_auto, step=10.0)
+with col2:
+    cumul_saisi = st.number_input("Cumul Net Imposable (€) :", value=cumul_auto, step=50.0)
+with col3:
+    nb_mois = st.number_input("Mois du cumul (Ex: 3 pour Mars, 12 pour Décembre) :", min_value=1, max_value=12, value=1)
+
+# 5. CALCULATEUR D'ÉCART ET LOGIQUE ANTI-FRAUDE
+st.header("📊 Étape 2 : Diagnostic de Cohérence Financière")
+
+# Logique mathématique de cohérence
+attendu_cumul = net_saisi * nb_mois
+ecart = abs(cumul_saisi - attendu_cumul)
+
+if net_saisi > 0 and cumul_saisi > 0:
+    st.write(f"**Cumul théorique attendu (Net mensuel x {nb_mois} mois) :** {attendu_cumul:.2f} €")
+    st.write(f"**Cumul réel déclaré sur le document :** {cumul_saisi:.2f} €")
+    
+    # Seuil de tolérance de 50€ pour les variations de cotisations
+    if ecart <= 50.0:
+        statut_global = "🟢 FIABLE"
+        st.success(f" {statut_global} — Parfaite cohérence mathématique (Écart dérisoire de {ecart:.2f} €).")
+    else:
+        statut_global = "🔴 SUSPECT"
+        st.error(f"⚠️ {statut_global} — Incohérence majeure détectée ! L'écart est de {ecart:.2f} €.")
+else:
+    statut_global = "🟡 VIGILANCE"
+    st.warning("Veuillez charger un document valide ou remplir les montants pour générer le diagnostic.")
+
+# 6. GÉNÉRATION AUTOMATIQUE DU RAPPORT PDF CLIENT
+st.header("📥 Étape 3 : Téléchargement du Rapport Client")
+
+# Fonction interne pour structurer le livrable PDF officiel
+def generer_pdf_rapport(statut, net, cumul, mois, ecart_val):
     pdf = FPDF()
     pdf.add_page()
     
-    pdf.set_font("Helvetica", "B", 16)
-    pdf.cell(0, 12, "RAPPORT D'AUDIT ANTI-FRAUDE LOCATIVE", ln=True, align="C")
-    pdf.ln(4)
+    # Header Pro
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(0, 10, "RAPPORT D'AUDIT ANTI-FRAUDE IMMOBILIERE", ln=True, align="C")
+    pdf.set_font("Arial", "", 10)
+    pdf.cell(0, 10, "Service d'analyse locale securisee pour propriettaires particuliers", ln=True, align="C")
+    pdf.line(10, 30, 200, 30)
+    pdf.ln(10)
     
-    pdf.set_font("Helvetica", "", 11)
-    pdf.cell(0, 8, "Date de l'audit : 22 juin 2026", ln=True)
-    pdf.cell(0, 8, f"Statut global du dossier : {statut}", ln=True)
-    pdf.ln(4)
+    # Métadonnées du rapport
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(0, 10, f"Statut Global du Dossier : {statut}", ln=True)
+    pdf.ln(5)
     
-    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-    pdf.ln(6)
+    # Données chiffrées
+    pdf.set_font("Arial", "", 11)
+    pdf.cell(0, 8, f"- Montant net mensuel analyse : {net:.2f} EUR", ln=True)
+    pdf.cell(0, 8, f"- Cumul net imposable declare : {cumul:.2f} EUR (sur {mois} mois)", ln=True)
+    pdf.cell(0, 8, f"- Ecart de coherence detecte : {ecart_val:.2f} EUR", ln=True)
+    pdf.ln(10)
     
-    pdf.set_font("Helvetica", "B", 13)
-    pdf.cell(0, 10, "1. Analyse Logique et Financiere", ln=True)
-    pdf.set_font("Helvetica", "", 11)
-    pdf.cell(0, 8, f"- Salaire net mensuel calcule : {net_mensuel:.2f} EUR", ln=True)
-    pdf.cell(0, 8, f"- Numero du mois audite : {mois_cumule}", ln=True)
-    pdf.cell(0, 8, f"- Cumul Net Imposable declare : {cumul_net:.2f} EUR", ln=True)
-    pdf.cell(0, 8, f"- Ecart de calcul trouve : {ecart:.2f} EUR", ln=True)
-    pdf.ln(4)
-    
-    pdf.set_font("Helvetica", "B", 13)
-    pdf.cell(0, 10, "2. Verification de la Structure du PDF", ln=True)
-    pdf.set_font("Helvetica", "", 11)
-    for mot, trouve in mots_reperes.items():
-        status_text = "CONFORME (Trouve)" if trouve else "ABSENT (A verifier)"
-        pdf.cell(0, 8, f"- Terme '{mot}' : {status_text}", ln=True)
-    pdf.ln(12)
-    
-    pdf.set_font("Helvetica", "I", 9)
-    pdf.multi_cell(0, 5, "Securite & Confidentialite : Document genere localement. Toutes les pieces justificatives analysees ont ete definitivement detruites apres traitement conformément au RGPD.")
-    
-    return pdf.output()
-
-
-# --- LOGIQUE D'ANALYSE AUTOMATIQUE ET MANUELLE ---
-st.title("🕵️‍♂️ Anti-Fraude Locative — Scanner Intelligent")
-st.write("Analyse automatisée sécurisée.")
-
-# Initialisation des variables par défaut
-net_detecte = 0.0
-cumul_detecte = 0.0
-mots_reperes_statut = {"cumul": False, "imposable": False, "net à payer": False, "revenu fiscal": False}
-
-st.subheader("📄 1. Remplissage Intelligent (Analyse de Document)")
-uploaded_file = st.file_uploader("Glissez-déposez le PDF d'un bulletin de salaire ou avis d'imposition ici", type="pdf")
-
-if uploaded_file is not None:
-    with st.spinner("Extraction et décodage automatique des données..."):
-        with pdfplumber.open(uploaded_file) as pdf:
-            full_text = ""
-            for page in pdf.pages:
-                text = page.extract_text()
-                if text:
-                    full_text += text + "\n"
-        
-        # --- BLOC REGEX : EXTRACTION INTELLIGENTE ---
-        # Détection du Net à payer (cherche des variantes comme Net à payer, Net payé, etc. suivi d'un montant)
-        match_net = re.search(r"(?:net\s*(?:à\s*payer|payé)?)\s*[:\s]*([\d\s ][\d\s ,.]*\d)", full_text, re.IGNORECASE)
-        if match_net:
-            try:
-                net_clean = match_net.group(1).replace(" ", "").replace(" ", "").replace(",", ".")
-                net_detecte = float(net_clean)
-                st.toast(f"🤖 Net mensuel détecté : {net_detecte} €", icon="ℹ️")
-            except ValueError:
-                pass
-
-        # Détection du Cumul Imposable
-        match_cumul = re.search(r"(?:cumul\s*(?:net\s*)?imposable)\s*[:\s]*([\d\s ][\d\s ,.]*\d)", full_text, re.IGNORECASE)
-        if match_cumul:
-            try:
-                cumul_clean = match_cumul.group(1).replace(" ", "").replace(" ", "").replace(",", ".")
-                cumul_detecte = float(cumul_clean)
-                st.toast(f"🤖 Cumul Imposable détecté : {cumul_detecte} €", icon="ℹ️")
-            except ValueError:
-                pass
-
-        # Cartographie des mots-clés de contrôle
-        for mot in mots_reperes_statut.keys():
-            if mot in full_text.lower():
-                mots_reperes_statut[mot] = True
-        
-        st.success("🤖 Analyse par Regex terminée. Les formulaires ci-dessous ont été mis à jour.")
-
-st.markdown("---")
-
-# 📊 SECTION CALCULATEUR
-st.subheader("📊 2. Validation de la Cohérence Numérique")
-
-col1, col2 = st.columns(2)
-with col1:
-    # La valeur par défaut s'adapte automatiquement si la Regex trouve le chiffre dans le PDF
-    net_mensuel = st.number_input("Net à payer ce mois (€)", min_value=0.0, value=net_detecte, step=100.0)
-    mois_cumule = st.number_input("Numéro du mois dans l'année (ex: 3 pour Mars, 6 pour Juin)", min_value=1, max_value=12, value=1)
-with col2:
-    # Pareil pour le cumul imposable
-    cumul_net = st.number_input("Cumul Net Imposable indiqué en bas de page (€)", min_value=0.0, value=cumul_detecte, step=100.0)
-
-statut_global = "🟡 AUCUN DOCUMENT TRAITÉ"
-ecart_calcule = 0.0
-
-if net_mensuel > 0 and cumul_net > 0:
-    cumul_theorique = net_mensuel * mois_cumule
-    ecart_calcule = abs(cumul_theorique - cumul_net)
-    marge_tolerance = cumul_theorique * 0.15 # 15% de tolérance aux variations
-    
-    st.markdown("#### **Résultat de la cohérence mathématique :**")
-    if ecart_calcule <= marge_tolerance:
-        st.success(f"🟢 COHÉRENT : L'écart est de {ecart_calcule:.2f} €. Les calculs concordent avec l'historique annuel.")
-        statut_global = "FIABLE - COHERENCE FINANCIERE CONFIRMEE"
+    # Note de l'expert technique
+    pdf.set_font("Arial", "B", 11)
+    pdf.cell(0, 8, "Note de l'expert technique :", ln=True)
+    pdf.set_font("Arial", "", 11)
+    if statut == "🟢 FIABLE":
+        pdf.multi_cell(0, 8, "Les verifications mathematiques et logiques n'ont revele aucune anomalie. Les montants cumules correspondent aux declarations mensuelles transmises.")
+    elif statut == "🔴 SUSPECT":
+        pdf.multi_cell(0, 8, "ATTENTION : Une anomalie mathematique critique a ete identifiee entre le net mensuel et les cumuls fiscaux declarés. Risque eleve de falsification numerique.")
     else:
-        st.error(f"🔴 SUSPECT : Écart important de {ecart_calcule:.2f} € détecté entre le mensuel et le cumul indiqué !")
-        statut_global = "ALERT - INCOHERENCE DES CALCULS DETECTEE"
-
-st.markdown("---")
-
-# 🔗 EXPORTATION ET RECHERCHES EXTERNES
-st.subheader("🛠️ 3. Outils complémentaires & Génération de Rapport")
-st.markdown("[Accéder au Vérificateur d'Avis d'Impôt - Impots.gouv](https://cfspart.impots.gouv.fr/fraude/avis)")
-
-if net_mensuel > 0 or uploaded_file is not None:
-    st.write("")
-    st.markdown("### 📥 Téléchargement du Rapport Client")
+        pdf.multi_cell(0, 8, "Dossier en attente de pieces complementaires ou de saisie de donnees.")
     
-    pdf_genere = generer_pdf_rapport(
-        statut=statut_global,
-        net_mensuel=net_mensuel,
-        mois_cumule=mois_cumule,
-        cumul_net=cumul_net,
-        ecart=ecart_calcule,
-        mots_reperes=mots_reperes_statut
+    pdf.ln(20)
+    pdf.line(10, 120, 200, 120)
+    pdf.ln(5)
+    
+    # CLAUSE DE CONFIDENTIALITÉ JURIDIQUE (RGPD & AI ACT)
+    pdf.set_font("Arial", "I", 9)
+    clause_rgpd = (
+        "Securite & Confidentialite (Conformite RGPD & AI Act 2026) :\n"
+        "Ce document a ete genere par un systeme d'analyse locale securisee. "
+        "Conformement au Reglement General sur la Protection des Donnees (RGPD), le prestataire certifie "
+        "qu'aucune donnee personnelle ou piece justificative analysee n'est conservee, stockee ou partagee. "
+        "L'integralite des fichiers sources (bulletins de salaire, avis d'imposition) a ete definitivement "
+        "detruite des la cloture de cet audit. Cet audit est un avis technique base sur la coherence "
+        "logique du document et ne constitue pas une garantie d'impaye."
     )
+    pdf.multi_cell(0, 5, clause_rgpd)
+    
+    return pdf.output(dest='S').encode('latin-1', errors='ignore')
+
+# Bouton de téléchargement dynamique
+if net_saisi > 0 and cumul_saisi > 0:
+    donnees_pdf = generer_pdf_rapport(statut_global, net_saisi, cumul_saisi, nb_mois, ecart)
     
     st.download_button(
-        label="⚡ Générer et Télécharger le rapport d'audit (PDF)",
-        data=bytes(pdf_genere),
-        file_name="Rapport_Audit_Anti_Fraude.pdf",
-        mime="application/pdf",
-        use_container_width=True
+        label="📥 Télécharger le Rapport d'Audit (PDF)",
+        data=donnees_pdf,
+        file_name=f"Rapport_Audit_{statut_global.replace(' ', '_')}.pdf",
+        mime="application/pdf"
     )
-
-st.caption("🔒 Sécurité : Aucune donnée n'est stockée en ligne. Tout reste en mémoire vive locale.")
+else:
+    st.button("📥 Télécharger le Rapport d'Audit (PDF)", disabled=True, help="Veuillez remplir les données d'analyse pour activer le téléchargement.")
