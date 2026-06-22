@@ -179,7 +179,8 @@ def generer_pdf_rapport(statut, net, cumul, mois, ecart_val):
     pdf.set_font("Arial", "I", 9)
     pdf.multi_cell(0, 5, "Securite & Confidentialite (RGPD & AI Act 2026) : Ce rapport est genere par analyse locale. Aucune donnee source n'est stockee.")
     
-    return pdf.output(dest='S').encode('latin-1', errors='ignore')
+    # CORRECTION ICI : fpdf2 génère directement des bytes, plus besoin d'encoder !
+    return bytes(pdf.output())
 
 if net_saisi > 0 and cumul_saisi > 0:
     donnees_pdf = generer_pdf_rapport(statut_global, net_saisi, cumul_saisi, nb_mois, ecart)
