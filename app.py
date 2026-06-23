@@ -1,8 +1,3 @@
-"""
-BailSafe — Vitrine publique (page principale)
-Lancer avec : streamlit run app_vitrine.py
-"""
-
 from __future__ import annotations
 
 import re
@@ -672,14 +667,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-"""
-BailSafe — Interface Expert (URL séparée, pas d'authentification dans le code)
-Lancer avec : streamlit run app_expert.py
-Sécuriser l'accès via Streamlit Cloud → Settings → Viewer Authentication (email whitelist)
-ou via un reverse proxy (Nginx basic auth, Cloudflare Access, etc.)
-"""
-
-from __future__ import annotations
 
 import re
 from typing import Optional
