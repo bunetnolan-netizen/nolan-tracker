@@ -358,6 +358,12 @@ def afficher_vitrine():
     </div>
     """, unsafe_allow_html=True)
 
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%); border: 1px solid #93c5fd; border-radius: 14px; padding: 16px 18px; margin: 12px 0 20px 0; color: #0f172a;">
+        <b>✅ Résultat attendu :</b> un dossier de location plus sûr, une décision plus rapide, et un argument clair pour justifier votre choix.
+    </div>
+    """, unsafe_allow_html=True)
+
     cta = build_cta_banner()
     st.markdown(
         f"""
@@ -395,12 +401,6 @@ def afficher_vitrine():
                 """,
                 unsafe_allow_html=True,
             )
-
-    st.markdown("""
-    <div style="background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%); border: 1px solid #93c5fd; border-radius: 14px; padding: 16px 18px; margin: 12px 0 20px 0; color: #0f172a;">
-        <b>✅ Résultat attendu :</b> un dossier de location plus sûr, une décision plus rapide, et un argument clair pour justifier votre choix.
-    </div>
-    """, unsafe_allow_html=True)
 
     st.markdown("""
     <div style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); border: 1px solid #cbd5e1; border-radius: 14px; padding: 18px; margin: 16px 0;">
