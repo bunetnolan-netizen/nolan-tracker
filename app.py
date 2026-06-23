@@ -364,44 +364,6 @@ def afficher_vitrine():
     </div>
     """, unsafe_allow_html=True)
 
-    cta = build_cta_banner()
-    st.markdown(
-        f"""
-        <div style="background: linear-gradient(135deg, #0f172a 0%, #111827 100%); border: 1px solid #f59e0b; border-radius: 18px; padding: 24px; margin: 24px 0; color: white; text-align: center;">
-            <h3 style="margin-top: 0; color: white;">{cta['title']}</h3>
-            <p style="margin-bottom: 16px; color: #e5e7eb;">{cta['body']}</p>
-            <div style="display: flex; justify-content: center; gap: 14px; flex-wrap: wrap;">
-                <a href="https://leboncoin.fr/profil/3780fc14-e927-43d6-b826-40c02a3300c2" target="_blank" style="text-decoration: none;">
-                    <div style="background-color: #f56523; color: white; padding: 12px 24px; border-radius: 10px; font-weight: bold;">🛒 Contact LeBonCoin</div>
-                </a>
-                <a href="https://www.facebook.com/share/1KKBK1mfpV/?mibextid=wwXlfr" target="_blank" style="text-decoration: none;">
-                    <div style="background-color: #2563eb; color: white; padding: 12px 24px; border-radius: 10px; font-weight: bold;">📘 Contact Facebook</div>
-                </a>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    st.markdown("""
-    <div style="background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%); border: 1px solid #93c5fd; border-radius: 14px; padding: 16px 18px; margin: 18px 0 14px 0;">
-        <h4 style="margin-top: 0; color: #0f172a;">⭐ Témoignages de confiance</h4>
-    </div>
-    """, unsafe_allow_html=True)
-    proof_items = build_social_proof_items()
-    proof_cols = st.columns(len(proof_items))
-    for col, item in zip(proof_cols, proof_items):
-        with col:
-            st.markdown(
-                f"""
-                <div style="background: #ffffff; border: 1px solid #dbeafe; border-radius: 12px; padding: 14px; min-height: 120px;">
-                    <p style="margin: 0 0 8px 0; color: #0f172a; font-style: italic;">“{item['quote']}”</p>
-                    <p style="margin: 0; color: #475569; font-size: 0.92rem;">{item['author']}</p>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
     st.markdown("""
     <div style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); border: 1px solid #cbd5e1; border-radius: 14px; padding: 18px; margin: 16px 0;">
         <h4 style="margin-top: 0; color: #0f172a;">🧠 Pourquoi c’est convaincant</h4>
@@ -479,6 +441,44 @@ def afficher_vitrine():
     user_message = st.text_input("Votre question", placeholder="Combien ça coûte ?")
     if user_message:
         st.info(build_ai_reply(user_message))
+
+    cta = build_cta_banner()
+    st.markdown(
+        f"""
+        <div style="background: linear-gradient(135deg, #0f172a 0%, #111827 100%); border: 1px solid #f59e0b; border-radius: 18px; padding: 24px; margin: 24px 0 12px 0; color: white; text-align: center;">
+            <h3 style="margin-top: 0; color: white;">{cta['title']}</h3>
+            <p style="margin-bottom: 16px; color: #e5e7eb;">{cta['body']}</p>
+            <div style="display: flex; justify-content: center; gap: 14px; flex-wrap: wrap;">
+                <a href="https://leboncoin.fr/profil/3780fc14-e927-43d6-b826-40c02a3300c2" target="_blank" style="text-decoration: none;">
+                    <div style="background-color: #f56523; color: white; padding: 12px 24px; border-radius: 10px; font-weight: bold;">🛒 Contact LeBonCoin</div>
+                </a>
+                <a href="https://www.facebook.com/share/1KKBK1mfpV/?mibextid=wwXlfr" target="_blank" style="text-decoration: none;">
+                    <div style="background-color: #2563eb; color: white; padding: 12px 24px; border-radius: 10px; font-weight: bold;">📘 Contact Facebook</div>
+                </a>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%); border: 1px solid #93c5fd; border-radius: 14px; padding: 16px 18px; margin: 18px 0 14px 0;">
+        <h4 style="margin-top: 0; color: #0f172a;">⭐ Témoignages de confiance</h4>
+    </div>
+    """, unsafe_allow_html=True)
+    proof_items = build_social_proof_items()
+    proof_cols = st.columns(len(proof_items))
+    for col, item in zip(proof_cols, proof_items):
+        with col:
+            st.markdown(
+                f"""
+                <div style="background: #ffffff; border: 1px solid #dbeafe; border-radius: 12px; padding: 14px; min-height: 120px;">
+                    <p style="margin: 0 0 8px 0; color: #0f172a; font-style: italic;">“{item['quote']}”</p>
+                    <p style="margin: 0; color: #475569; font-size: 0.92rem;">{item['author']}</p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
     
     st.divider()
     with st.expander("🔐 Accès Expert"):
