@@ -126,6 +126,23 @@ def build_cta_banner() -> dict:
     }
 
 
+def build_objection_cards() -> list[dict]:
+    return [
+        {
+            "title": "Le temps manque ?",
+            "body": "L’analyse est pensée pour être rapide, claire et livrable en moins de 24 heures.",
+        },
+        {
+            "title": "Le dossier semble correct ?",
+            "body": "C’est justement là que les anomalies cachées se révèlent : un contrôle préventif évite les erreurs coûteuses.",
+        },
+        {
+            "title": "Le coût est-il justifié ?",
+            "body": "Un faux positif coûte souvent plus cher qu’un audit préventif bien mené.",
+        },
+    ]
+
+
 def build_report_pdf(statut: str, ecart: float, fraude_meta: bool, est_scan: bool) -> bytes:
     statut_safe = re.sub(r'[^\x00-\x7F]+', '', statut)
 
@@ -222,9 +239,54 @@ def get_home_section_info(slug: str) -> dict:
 # ==========================================
 # 🌍 PARTIE 1 : LA VITRINE PUBLIQUE
 # ==========================================
+def inject_premium_ui_styles() -> None:
+    st.markdown(
+        """
+        <style>
+        @keyframes premiumFadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .premium-card {
+            animation: premiumFadeUp 650ms cubic-bezier(.2,.8,.2,1) both;
+            transition: transform 220ms ease, box-shadow 260ms ease, border-color 220ms ease, filter 220ms ease;
+            will-change: transform, box-shadow;
+        }
+        .premium-card:hover {
+            transform: translateY(-4px) scale(1.01);
+            box-shadow: 0 18px 38px rgba(15, 23, 42, 0.13);
+            filter: saturate(1.02);
+        }
+        div.stButton > button {
+            transition: transform 180ms ease, box-shadow 220ms ease, background 220ms ease, border-color 220ms ease;
+            border: 1px solid rgba(255,255,255,0.12);
+        }
+        div.stButton > button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(37, 99, 235, 0.18);
+        }
+        .stMetric {
+            transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+            border-radius: 12px;
+        }
+        .stMetric:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+        }
+        .stAlert, .stInfo, .stSuccess, .stWarning {
+            border-radius: 12px;
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def afficher_vitrine():
+    inject_premium_ui_styles()
     st.markdown("""
-        <div style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); padding: 34px; border-radius: 18px; text-align: center; margin-bottom: 25px; border: 2px solid #f59e0b; box-shadow: 0 12px 30px rgba(0,0,0,0.25);">
+        <div class="premium-card" style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); padding: 34px; border-radius: 20px; text-align: center; margin-bottom: 25px; border: 2px solid rgba(245,158,11,0.9); box-shadow: 0 18px 36px rgba(2,6,23,0.28);">
             <div style="font-size: 56px; margin-bottom: 10px;">🛡️</div>
             <h1 style="color: #ffffff; margin: 0; font-family: 'Helvetica Neue', sans-serif; font-weight: 800; letter-spacing: 1px;">BailSafe</h1>
             <p style="color: #cbd5e1; font-size: 17px; margin-top: 7px; margin-bottom: 0;">Filtre Anti-Fraude Documentaire & Analyse Heuristique par IA</p>
@@ -251,7 +313,7 @@ def afficher_vitrine():
     active_shortcut = next((item for item in shortcuts if item["slug"] == st.session_state["active_home_category"]), shortcuts[0])
     st.markdown(
         f"""
-        <div style="background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%); border: 1px solid #93c5fd; border-radius: 14px; padding: 16px 18px; margin: 16px 0 10px 0;">
+        <div class="premium-card" style="background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%); border: 1px solid #93c5fd; border-radius: 16px; padding: 16px 18px; margin: 16px 0 10px 0; box-shadow: 0 10px 24px rgba(15,23,42,0.05);">
             <h4 style="margin-top: 0; color: #0f172a;">{active_shortcut['icon']} {active_shortcut['title']}</h4>
             <p style="margin: 0; color: #334155;">{active_shortcut['description']}</p>
         </div>
@@ -318,7 +380,7 @@ def afficher_vitrine():
     col_offer_3.metric("Livrable", "PDF", "rapport prêt à envoyer")
 
     st.markdown("""
-    <div style="background: linear-gradient(135deg, #111827 0%, #1f2937 100%); border: 1px solid #f59e0b; border-radius: 16px; padding: 20px; margin: 16px 0 22px 0; color: white;">
+    <div class="premium-card" style="background: linear-gradient(135deg, #111827 0%, #1f2937 100%); border: 1px solid #f59e0b; border-radius: 18px; padding: 20px; margin: 16px 0 22px 0; color: white; box-shadow: 0 14px 30px rgba(2,6,23,0.18);">
         <h4 style="margin-top: 0; color: white;">Pourquoi les propriétaires nous choisissent</h4>
         <ul style="margin: 0; padding-left: 20px; color: #e5e7eb;">
             <li>Analyse rapide, claire et actionnable.</li>
@@ -329,7 +391,7 @@ def afficher_vitrine():
     """, unsafe_allow_html=True)
 
     st.markdown("""
-    <div style="background: linear-gradient(135deg, #fef3c7 0%, #fff7ed 100%); border: 1px solid #f59e0b; border-radius: 14px; padding: 16px 18px; margin: 14px 0 18px 0;">
+    <div class="premium-card" style="background: linear-gradient(135deg, #fef3c7 0%, #fff7ed 100%); border: 1px solid #f59e0b; border-radius: 16px; padding: 16px 18px; margin: 14px 0 18px 0; box-shadow: 0 10px 24px rgba(146,64,0,0.06);">
         <h4 style="margin-top: 0; color: #92400e;">💰 Le vrai coût d’une mauvaise décision</h4>
         <p style="margin: 0; color: #78350f;">Un dossier douteux peut coûter beaucoup plus cher qu’un audit préventif. BailSafe vous aide à éviter les erreurs avant qu’elles ne deviennent coûteuses.</p>
     </div>
@@ -345,7 +407,7 @@ def afficher_vitrine():
         st.info("3. Un rapport PDF clair est livré et partageable")
 
     st.markdown("""
-    <div style="background: linear-gradient(135deg, #ecfeff 0%, #f8fafc 100%); border: 1px solid #22d3ee; border-radius: 14px; padding: 16px 18px; margin: 16px 0 8px 0;">
+    <div class="premium-card" style="background: linear-gradient(135deg, #ecfeff 0%, #f8fafc 100%); border: 1px solid #22d3ee; border-radius: 16px; padding: 16px 18px; margin: 16px 0 8px 0; box-shadow: 0 10px 24px rgba(8,47,73,0.05);">
         <h4 style="margin-top: 0; color: #0f172a;">🎯 Pourquoi cette démarche est intelligente</h4>
         <p style="margin: 0; color: #334155;">Vous ne réagissez pas après l’erreur : vous sécurisez la décision dès le départ, avec une preuve claire et un langage compréhensible.</p>
     </div>
@@ -434,7 +496,7 @@ def afficher_vitrine():
     c3.metric("Valeur estimée", f"{estimated_value} €")
 
     st.markdown("""
-    <div style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); border: 1px solid #cbd5e1; border-radius: 12px; padding: 14px; margin: 12px 0 0 0;">
+    <div style="background: linear-gradient(135deg, #0f172a 0%, #111827 100%); border: 1px solid #f59e0b; border-radius: 12px; padding: 14px; margin: 12px 0 0 0; color: #f8fafc; box-shadow: 0 10px 24px rgba(2,6,23,0.16);">
         <b>💬 Mini-chat IA :</b> écrivez un message pour tester l’assistant.
     </div>
     """, unsafe_allow_html=True)
@@ -442,10 +504,28 @@ def afficher_vitrine():
     if user_message:
         st.info(build_ai_reply(user_message))
 
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%); border: 1px solid #93c5fd; border-radius: 16px; padding: 16px 18px; margin: 16px 0 6px 0;">
+        <h4 style="margin-top: 0; color: #0f172a;">🧭 Les objections les plus fréquentes</h4>
+    </div>
+    """, unsafe_allow_html=True)
+    objection_cols = st.columns(len(build_objection_cards()))
+    for col, item in zip(objection_cols, build_objection_cards()):
+        with col:
+            st.markdown(
+                f"""
+                <div class="premium-card" style="background: #ffffff; border: 1px solid #dbeafe; border-radius: 12px; padding: 14px; min-height: 140px;">
+                    <h5 style="margin-top: 0; margin-bottom: 8px; color: #0f172a;">{item['title']}</h5>
+                    <p style="margin: 0; color: #475569;">{item['body']}</p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
     cta = build_cta_banner()
     st.markdown(
         f"""
-        <div style="background: linear-gradient(135deg, #0f172a 0%, #111827 100%); border: 1px solid #f59e0b; border-radius: 18px; padding: 24px; margin: 24px 0 12px 0; color: white; text-align: center;">
+        <div class="premium-card" style="background: linear-gradient(135deg, #0f172a 0%, #111827 100%); border: 1px solid #f59e0b; border-radius: 20px; padding: 24px; margin: 24px 0 12px 0; color: white; text-align: center; box-shadow: 0 18px 36px rgba(2,6,23,0.25);">
             <h3 style="margin-top: 0; color: white;">{cta['title']}</h3>
             <p style="margin-bottom: 16px; color: #e5e7eb;">{cta['body']}</p>
             <div style="display: flex; justify-content: center; gap: 14px; flex-wrap: wrap;">
@@ -462,7 +542,7 @@ def afficher_vitrine():
     )
 
     st.markdown("""
-    <div style="background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%); border: 1px solid #93c5fd; border-radius: 14px; padding: 16px 18px; margin: 18px 0 14px 0;">
+    <div class="premium-card" style="background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%); border: 1px solid #93c5fd; border-radius: 16px; padding: 16px 18px; margin: 18px 0 14px 0; box-shadow: 0 10px 24px rgba(15,23,42,0.05);">
         <h4 style="margin-top: 0; color: #0f172a;">⭐ Témoignages de confiance</h4>
     </div>
     """, unsafe_allow_html=True)
