@@ -14,7 +14,6 @@ st.set_page_config(page_title="BailSafe | Audit Locatif Expert", page_icon="🛡
 # ==========================================
 # 🔐 CONFIGURATION SÉCURISÉE (STREAMLIT SECRETS)
 # ==========================================
-# Le code va chercher les mots de passe dans le coffre-fort de Streamlit
 try:
     MOT_DE_PASSE_ATTENDU = st.secrets["MOT_DE_PASSE_ATTENDU"]
     EMAIL_EXPEDITEUR = st.secrets["EMAIL_EXPEDITEUR"]
@@ -42,14 +41,21 @@ def afficher_vitrine():
     st.markdown("<h3 style='text-align: center;'>Louez votre bien immobilier en toute sérénité.</h3>", unsafe_allow_html=True)
     st.divider()
 
-    tab_constat, tab_solution, tab_preuve, tab_rgpd = st.tabs(["🚨 Le Risque", "💡 La Solution", "📄 Exemple de Rapport", "🔒 Sécurité"])
+    # Ajout du 5ème onglet pour les Mentions Légales
+    tab_constat, tab_solution, tab_preuve, tab_rgpd, tab_legales = st.tabs([
+        "🚨 Le Risque", 
+        "💡 La Solution", 
+        "📄 Exemple de Rapport", 
+        "🔒 Sécurité", 
+        "⚖️ Mentions Légales"
+    ])
 
     with tab_constat:
         st.markdown("### Pourquoi sécuriser vos dossiers locatifs ?")
         colA, colB = st.columns(2)
         colA.metric(label="Risque financier global", value="Élevé", delta="Impayés en forte hausse", delta_color="inverse")
         colB.metric(label="Contrôle visuel classique", value="Incertain", delta="Fraudes invisibles à l'œil", delta_color="inverse")
-        st.info("Un propriétaire particulier n'a ni le temps ni les outils pour traquer les pixels modifiés ou les anomalies mathématiques d'un document.")
+        st.info("Un propriétaire particulier n'a généralement ni le temps ni les outils pour traquer les pixels modifiés ou les anomalies mathématiques d'un document.")
 
     with tab_solution:
         st.markdown("### Notre Expertise Technologique")
@@ -72,8 +78,23 @@ def afficher_vitrine():
         st.caption("Grâce à ces données, vous évitez un candidat fraudeur avant même la signature du bail.")
 
     with tab_rgpd:
-        st.warning("⚖️ **Garantie de Conformité** : Conformément au RGPD, BailSafe agit sans persistance.")
+        st.warning("🛡️ **Garantie de Conformité** : Conformément au RGPD, BailSafe agit sans persistance.")
         st.markdown("- **Zéro Base de Données** : Aucun stockage.\n- **Analyse Volatile** : Fichiers purgés après l'envoi du rapport.")
+
+    with tab_legales:
+        st.markdown("### Mentions Légales & Clause de Non-Responsabilité")
+        st.markdown("""
+        **Éditeur du service :** BailSafe – Service d'assistance technique à la gestion immobilière proposé par Nolan Bunet (Statut de micro-entreprise en cours de finalisation).  
+        Contact : bunetnolan@gmail.com
+        
+        **Hébergement :** Ce service est exécuté de manière sécurisée et éphémère via la plateforme **Streamlit Community Cloud** (infrastructures serveurs sécurisées).
+        
+        **Exclusion Totale de Responsabilité (Protection Juridique) :** BailSafe fournit exclusivement une **assistance technique algorithmique et forensique** basée sur l'état informatique des documents numériques soumis au moment de l'analyse. 
+        
+        - **Aucune Garantie d'Impayé :** Cet audit constitue un avis technique consultatif à un instant T. Il ne s'agit en aucun cas d'une assurance, d'une caution ou d'une garantie financière contre de futurs impayés de loyer, des litiges juridiques ou des dégradations commises par le locataire élu.
+        - **Limites Techniques :** Malgré la sophistication de nos scripts de détection, BailSafe ne saurait être tenu responsable en cas de falsification matérielle ou numérique d'un niveau de retouche indétectable par analyse heuristique, ou si la situation financière/professionnelle du locataire évolue négativement après l'analyse.
+        - **Souveraineté du Bailleur :** La décision finale d'acceptation, de validation ou de refus d'une candidature locative relève de la responsabilité unique, entière et souveraine du propriétaire bailleur.
+        """)
 
     st.divider()
     st.markdown("<h3 style='text-align: center;'>📩 Confiez-nous votre première analyse</h3>", unsafe_allow_html=True)
@@ -111,11 +132,10 @@ def afficher_interface_expert():
             st.session_state["authentifie"] = False
             st.rerun()
 
-    # --- TUNNEL D'ENCAISSEMENT (POUR TOI) ---
     with st.expander("💸 Tunnel de paiement (Message client)"):
         st.write("Copie-colle ce message à ton client pour encaisser l'audit :")
         st.code("""Bonjour ! J'ai bien reçu le dossier de votre candidat. 
-Afin que je puisse lancer l'audit technique et forensique, je vous invite à régler les 20€ d'honoraires via ce lien sécurisé : [TON LIEN LYDIA / PAYPAL ICI]
+Afin que je puisse lancer l'audit technique et forensique, je vous invite à régler les 20€ d'honoraires via ce lien sécurisé : [TON LIEN LYDIA / PAYPAL HERE]
 
 Dès réception, le système scanne les pièces et je vous envoie le rapport PDF de fiabilité. 
 Cordialement, Nolan - BailSafe""", language="text")
@@ -133,15 +153,14 @@ Cordialement, Nolan - BailSafe""", language="text")
                 if page_text:
                     texte_brut += page_text + "\n"
         
-        # --- SÉCURITÉ SCANS & PHOTOS ---
         est_scan = len(texte_brut.strip()) < 20
 
         tab1, tab2, tab3 = st.tabs(["📊 Cohérence Numérique", "🔎 ADN du Fichier", "📤 Rapport & Envoi"])
         
         with tab1:
             if est_scan:
-                st.warning("⚠️ ATTENTION : Ce PDF ne contient aucun texte informatique. Il s'agit d'un SCAN ou d'une PHOTO. L'extraction mathématique automatique est impossible.")
-                st.info("Passez directement à l'onglet 'ADN du fichier' pour vérifier l'origine de la photo, puis effectuez une vérification visuelle des chiffres.")
+                st.warning("⚠️ ATTENTION : Ce PDF ne contient aucun texte informatique (Scan ou Photo). L'extraction mathématique automatique est impossible.")
+                st.info("Passez à l'onglet 'ADN du fichier' pour vérifier l'origine de la photo, puis effectuez une vérification visuelle des chiffres.")
                 fraude_math = False
                 ecart = 0
             else:
@@ -226,7 +245,7 @@ Cordialement, Nolan - BailSafe""", language="text")
                         msg['From'] = EMAIL_EXPEDITEUR
                         msg['To'] = email_client
                         msg['Subject'] = "[BailSafe] Votre Rapport d'Audit Locatif"
-                        msg.attach(MIMEText("Bonjour,\n\nVeuillez trouver ci-joint le rapport d'audit anti-fraude concernant le dossier de votre candidat.\n\nCordialement,\nNolan - BailSafe", 'plain'))
+                        msg.attach(MIMEText("Bonjour,\n\nVeuillez trouver ci-joint le rapport d'audit anti-fraude express concernant le dossier de votre candidat.\n\nCordialement,\nNolan - BailSafe", 'plain'))
                         
                         part = MIMEBase('application', 'octet-stream')
                         part.set_payload(pdf_bytes)
