@@ -3,204 +3,165 @@ import pdfplumber
 import re
 from fpdf import FPDF
 import smtplib
-from email.message import EmailMessage
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email.mime.text import MIMEText
+from email import encoders
+import tempfile
+import os
 
-# 1. CONFIGURATION DE LA PAGE & SÉCURITÉ
-st.set_page_config(page_title="Anti-Fraude Scanner Pro", page_icon="🕵️‍♂️", layout="wide")
+# ==========================================
+# ⚙️ CONFIGURATION & IDENTIFIANTS
+# ==========================================
+MOT_DE_PASSE_ATTENDU = "Nolan18!!"  # 🔴 À CHANGER AVANT DE METTRE SUR GITHUB
+EMAIL_EXPEDITEUR = "bunetnolan@gmail.com" # 🔴 TON ADRESSE GMAIL
+MOT_DE_PASSE_EMAIL = "uimd wahc rnbg enmh" # 🔴 TON MOT DE PASSE D'APPLICATION GMAIL
 
-# Initialisation des variables de session
+# Configuration de la page
+st.set_page_config(page_title="BailSafe | Audit Locatif Anti-Fraude", page_icon="🛡️", layout="centered")
+
+# Gestion de la session (Connecté ou non)
 if "authentifie" not in st.session_state:
     st.session_state["authentifie"] = False
-if "cagnotte" not in st.session_state:
-    st.session_state["cagnotte"] = 0.0
 
 # ==========================================
-# 🛑 ZONE À MODIFIER PAR TES SOINS
+# 🌍 PARTIE 1 : LA VITRINE PUBLIQUE
 # ==========================================
-MOT_DE_PASSE_ATTENDU = "Nolan18!!" 
+def afficher_vitrine():
+    # En-tête
+    st.markdown("<h1 style='text-align: center; color: #1E3A8A;'>🛡️ BailSafe</h1>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center;'>Louez votre bien l'esprit tranquille.</h3>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; font-size: 18px;'>Ne laissez plus les faux dossiers menacer votre rentabilité.</p>", unsafe_allow_html=True)
+    st.divider()
 
-# Identifiants pour l'envoi d'e-mail automatique
-EMAIL_EXPEDITEUR = "bunetnolan@gmail.com" 
-MOT_DE_PASSE_EMAIL = "uimd wahc rnbg enmh" 
-# ==========================================
-
-# Écran de connexion
-if not st.session_state["authentifie"]:
-    st.title("🔒 Accès Sécurisé - Anti-Fraude Scanner")
-    mdp_saisi = st.text_input("Veuillez entrer le mot de passe expert :", type="password")
-    if st.button("Se connecter"):
-        if mdp_saisi == MOT_DE_PASSE_ATTENDU:
-            st.session_state["authentifie"] = True
-            st.rerun()
-        else:
-            st.error("Mot de passe incorrect. Accès refusé.")
-    st.stop()
-
-# 2. INTERFACE DE L'APPLICATION
-st.title("🕵️‍♂️ Anti-Fraude Scanner — Espace Expert")
-st.subheader("Analyse de cohérence logique & graphique en temps réel")
-
-# --- SECTION CAGNOTTE ---
-col_cagnotte, col_bouton = st.columns([2, 1])
-with col_cagnotte:
-    objectif = 700.0
-    progression = min(st.session_state["cagnotte"] / objectif, 1.0)
-    st.progress(progression)
-    st.write(f"**Cagnotte Actuelle :** {st.session_state['cagnotte']}€ / {objectif}€")
-with col_bouton:
-    if st.button("➕ Encaisser un audit (15 €)"):
-        st.session_state["cagnotte"] += 15.0
-        st.rerun()
-
-# --- BANDEAU DE CONFORMITÉ RÉGLEMENTAIRE ---
-st.info("""
-⚖️ **Conformité Réglementaire & Sécurité (RGPD & AI Act 2026)**
-* **Zéro Stockage :** Les fichiers téléchargés sont traités exclusivement en mémoire vive (RAM) et sont définitivement détruits dès la fermeture de la session. Aucune base de données n'est conservée.
-* **Responsabilité :** Cet outil fournit un rapport d'aide à la décision basé sur la cohérence logique et graphique. Il ne se substitue pas à la validation finale du propriétaire bailleur.
-* **Obligation du Client :** En utilisant ce scanner, vous certifiez avoir obtenu l'accord préalable du candidat locataire pour la vérification technique de ses pièces justificatives.
-""")
-st.write("---")
-
-# 3. FONCTIONS D'EXTRACTION ET D'EMAIL
-def extraire_texte_pdf(fichier_pdf):
-    texte_complet = ""
-    with pdfplumber.open(fichier_pdf) as pdf:
-        for page in pdf.pages:
-            texte_page = page.extract_text()
-            if texte_page:
-                texte_complet += texte_page + "\n"
-    return texte_complet
-
-def analyser_montants_regex(texte):
-    net_payer, cumul_imposable = 0.0, 0.0
-    pattern_montant = r"[\d\s]+[.,]\s*\d{2}"
+    # Le Problème & La Solution
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("### 🚨 Le Constat")
+        st.write("Gérer une location seul est devenu un vrai parcours du combattant face à l'explosion des faux dossiers (bulletins de salaire modifiés, faux avis d'imposition). Un propriétaire n'a ni le temps ni les outils pour repérer ces fraudes invisibles à l'œil nu.")
+    with col2:
+        st.markdown("### 💡 Notre Solution")
+        st.write("**BailSafe** audite les candidatures de vos futurs locataires. Pour **15 € par dossier**, bénéficiez d'une détection de fraudes graphiques et d'une vérification mathématique et fiscale sous 24h.")
     
-    match_net = re.search(r"(?:net\s+a\s+payer|net\s+paye|remuneration\s+nette)\s*[:\s]*(" + pattern_montant + ")", texte, re.IGNORECASE)
-    if match_net:
-        try: net_payer = float(match_net.group(1).replace(" ", "").replace(",", "."))
-        except: pass
-        
-    match_cumul = re.search(r"(?:cumul\s+net\s+imposable|net\s+imposable\s+cumul|cumul\s+imposable)\s*[:\s]*(" + pattern_montant + ")", texte, re.IGNORECASE)
-    if match_cumul:
-        try: cumul_imposable = float(match_cumul.group(1).replace(" ", "").replace(",", "."))
-        except: pass
-        
-    return net_payer, cumul_imposable
+    st.divider()
 
-def envoyer_rapport_email(email_destinataire, donnees_pdf, nom_fichier):
-    msg = EmailMessage()
-    msg['Subject'] = "🔒 Votre Rapport d'Audit Anti-Fraude (Confidentiel)"
-    msg['From'] = f"Service Audit <{EMAIL_EXPEDITEUR}>"
-    msg['To'] = email_destinataire
+    # Comment ça marche
+    st.markdown("### 🛠️ Comment ça marche ?")
+    st.markdown("""
+    1. **Transmission :** Vous nous envoyez les pièces justificatives de votre candidat.
+    2. **Audit Expert :** Notre protocole analyse la cohérence logique et graphique (test du zoom, calculs des cumuls, vérifications officielles).
+    3. **Rapport express :** Vous recevez un rapport de fiabilité clair sous 24h pour choisir votre locataire sereinement.
+    """)
+
+    # Réassurance
+    st.info("🔒 **100% Sécurisé & Conforme RGPD :** Conformément au Règlement Général sur la Protection des Données (RGPD) et à l'AI Act, BailSafe agit comme un filtre local. **Aucun document n'est stocké.** L'intégralité des fichiers sources est définitivement détruite dès la clôture de l'audit.")
+
+    # Call to action
+    st.markdown("<h3 style='text-align: center;'>📩 Sécurisez vos dossiers dès maintenant</h3>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center;'>Contactez-moi directement via LeBonCoin pour me confier votre première analyse.</p>", unsafe_allow_html=True)
     
-    corps_email = """Bonjour,
-
-Veuillez trouver ci-joint le rapport d'audit anti-fraude concernant le dossier de votre candidat locataire. 
-
-Conformément à nos engagements de confidentialité (RGPD), toutes les pièces justificatives analysées ont été supprimées de nos serveurs sécurisés sitôt l'audit terminé.
-
-Nous restons à votre entière disposition.
-
-Cordialement,
-Votre Expert Anti-Fraude"""
+    st.divider()
     
-    msg.set_content(corps_email)
-    msg.add_attachment(donnees_pdf, maintype='application', subtype='pdf', filename=nom_fichier)
-
-    try:
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
-            smtp.login(EMAIL_EXPEDITEUR, MOT_DE_PASSE_EMAIL)
-            smtp.send_message(msg)
-        return True
-    except Exception as e:
-        return False
-
-# 4. ZONE DE CHARGEMENT DU DOSSIER
-st.header("📂 Étape 1 : Analyse du Bulletin de Salaire")
-fichier_charge = st.file_uploader("Glissez-déposez le bulletin de salaire (PDF uniquement)", type=["pdf"])
-
-net_saisi, cumul_saisi, nb_mois = 0.0, 0.0, 1
-
-if fichier_charge is not None:
-    texte_extrait = extraire_texte_pdf(fichier_charge)
-    net_auto, cumul_auto = analyser_montants_regex(texte_extrait)
-    st.success("✅ Analyse du document effectuée en mémoire RAM.")
-else:
-    net_auto, cumul_auto = 0.0, 0.0
-
-col1, col2, col3 = st.columns(3)
-with col1: net_saisi = st.number_input("Net à payer mensuel (€) :", value=net_auto, step=10.0)
-with col2: cumul_saisi = st.number_input("Cumul Net Imposable (€) :", value=cumul_auto, step=50.0)
-with col3: nb_mois = st.number_input("Mois du cumul :", min_value=1, max_value=12, value=1)
-
-# 5. DIAGNOSTIC
-st.header("📊 Étape 2 : Diagnostic de Cohérence Financière")
-attendu_cumul = net_saisi * nb_mois
-ecart = abs(cumul_saisi - attendu_cumul)
-
-statut_global = "🟡 VIGILANCE"
-
-if net_saisi > 0 and cumul_saisi > 0:
-    st.write(f"**Cumul théorique attendu :** {attendu_cumul:.2f} €")
-    st.write(f"**Cumul réel déclaré :** {cumul_saisi:.2f} €")
-    if ecart <= 50.0:
-        statut_global = "🟢 FIABLE"
-        st.success(f" {statut_global} — Parfaite cohérence mathématique.")
-    else:
-        statut_global = "🔴 SUSPECT"
-        st.error(f"⚠️ {statut_global} — Incohérence majeure ! Écart : {ecart:.2f} €.")
-
-# 6. GÉNÉRATION DU PDF ET ENVOI
-st.header("📥 Étape 3 : Livraison du Rapport")
-
-def generer_pdf_rapport(statut, net, cumul, mois, ecart_val):
-    pdf = FPDF()
-    pdf.add_page()
-    
-    # NETTOYAGE : On retire l'emoji pour que le PDF ne plante pas
-    statut_propre = statut.replace("🟢 ", "").replace("🔴 ", "").replace("🟡 ", "")
-    
-    pdf.set_font("Arial", "B", 16)
-    pdf.cell(0, 10, "RAPPORT D'AUDIT ANTI-FRAUDE IMMOBILIERE", ln=True, align="C")
-    pdf.line(10, 30, 200, 30)
-    pdf.ln(10)
-    
-    pdf.set_font("Arial", "B", 12)
-    # Utilisation de la variable propre (sans emoji)
-    pdf.cell(0, 10, f"Statut Global : {statut_propre}", ln=True)
-    pdf.ln(5)
-    
-    pdf.set_font("Arial", "", 11)
-    pdf.cell(0, 8, f"- Montant net mensuel analyse : {net:.2f} EUR", ln=True)
-    pdf.cell(0, 8, f"- Cumul net imposable declare : {cumul:.2f} EUR (sur {mois} mois)", ln=True)
-    pdf.cell(0, 8, f"- Ecart detecte : {ecart_val:.2f} EUR", ln=True)
-    pdf.ln(10)
-    
-    pdf.set_font("Arial", "I", 9)
-    pdf.multi_cell(0, 5, "Securite & Confidentialite (RGPD & AI Act 2026) : Ce rapport est genere par analyse locale. Aucune donnee source n'est stockee.")
-    
-    # CORRECTION ICI : fpdf2 génère directement des bytes, plus besoin d'encoder !
-    return bytes(pdf.output())
-
-if net_saisi > 0 and cumul_saisi > 0:
-    donnees_pdf = generer_pdf_rapport(statut_global, net_saisi, cumul_saisi, nb_mois, ecart)
-    nom_fichier_export = f"Rapport_Audit_{statut_global.replace(' ', '_').replace('🟢_', '').replace('🔴_', '').replace('🟡_', '')}.pdf"
-    
-    st.download_button(label="📥 Télécharger le Rapport (PDF)", data=donnees_pdf, file_name=nom_fichier_export, mime="application/pdf")
-    
-    st.write("---")
-    st.subheader("📧 Envoi direct au client")
-    email_client = st.text_input("Adresse e-mail du propriétaire (Optionnel) :", placeholder="exemple@client.com")
-    
-    if st.button("🚀 Envoyer le rapport par e-mail"):
-        with st.spinner("Envoi de l'e-mail en cours..."):
-            if email_client:
-                succes = envoyer_rapport_email(email_client, donnees_pdf, nom_fichier_export)
-                if succes:
-                    st.success(f"✅ Le rapport a été envoyé avec succès à l'adresse : {email_client}")
-                else:
-                    st.error("❌ Échec de l'envoi. Veuillez vérifier vos identifiants (Email et Mot de passe d'application) dans le code source.")
+    # Espace de connexion admin
+    with st.expander("🔐 Accès Expert (Administration)"):
+        mdp_saisi = st.text_input("Mot de passe", type="password")
+        if st.button("Se connecter"):
+            if mdp_saisi == MOT_DE_PASSE_ATTENDU:
+                st.session_state["authentifie"] = True
+                st.rerun()
             else:
-                st.warning("⚠️ Veuillez entrer une adresse e-mail valide avant de cliquer sur Envoyer.")
+                st.error("Mot de passe incorrect.")
+
+# ==========================================
+# 🕵️‍♂️ PARTIE 2 : L'INTERFACE EXPERT (PRIVÉE)
+# ==========================================
+def afficher_interface_expert():
+    st.success("🟢 Mode Expert activé.")
+    if st.button("Se déconnecter"):
+        st.session_state["authentifie"] = False
+        st.rerun()
+        
+    st.title("Scanner BailSafe 🕵️‍♂️")
+    st.info("Rappel Légal : Conformément au RGPD, ne conservez aucune copie des documents après génération du rapport.")
+    
+    fichier_pdf = st.file_uploader("Chargez le PDF du bulletin de salaire", type="pdf")
+    
+    # Section Extraction et Calculs (Repris de ton outil précédent)
+    if fichier_pdf is not None:
+        st.write("### 1. Analyse Mathématique Automatique")
+        texte_brut = ""
+        with pdfplumber.open(fichier_pdf) as pdf:
+            for page in pdf.pages:
+                texte_brut += page.extract_text() + "\n"
+        
+        # Regex pour extraction
+        net_a_payer_match = re.search(r'(?i)net\s*[àa]\s*payer\s*.*?(\d[\d\s]*[.,]?\d*)', texte_brut)
+        cumul_imposable_match = re.search(r'(?i)cumul\s*imposable\s*.*?(\d[\d\s]*[.,]?\d*)', texte_brut)
+        
+        net_extrait = net_a_payer_match.group(1).replace(' ', '').replace(',', '.') if net_a_payer_match else "0"
+        cumul_extrait = cumul_imposable_match.group(1).replace(' ', '').replace(',', '.') if cumul_imposable_match else "0"
+        
+        col1, col2, col3 = st.columns(3)
+        net_saisi = col1.number_input("Net à payer mensuel (€)", value=float(net_extrait))
+        nb_mois = col2.number_input("Mois de l'année (ex: 6 pour Juin)", min_value=1, max_value=12, value=1)
+        cumul_saisi = col3.number_input("Cumul Imposable déclaré (€)", value=float(cumul_extrait))
+        
+        calcul_theorique = net_saisi * nb_mois
+        ecart = abs(cumul_saisi - calcul_theorique)
+        
+        st.write(f"**Cumul Théorique calculé :** {calcul_theorique:.2f} €")
+        st.write(f"**Écart détecté :** {ecart:.2f} €")
+        
+        if ecart > 150:
+            st.error("🚨 Écart illogique détecté ! Falsification mathématique probable.")
+            statut = "🔴 SUSPECT"
+        else:
+            st.success("✅ Logique mathématique cohérente.")
+            statut = "🟢 FIABLE"
+            
+        st.write("### 2. Rapport & Envoi")
+        email_client = st.text_input("Adresse e-mail du client propriétaire :")
+        
+        if st.button("Générer et Envoyer le rapport PDF"):
+            # Création du PDF (Version fpdf2 nettoyée des emojis pour éviter l'erreur)
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("Helvetica", size=12)
+            pdf.cell(0, 10, "Rapport d'Audit - BailSafe", ln=True, align="C")
+            statut_propre = statut.replace("🔴", "").replace("🟢", "").replace("🟡", "").strip()
+            pdf.cell(0, 10, f"Statut Global : {statut_propre}", ln=True)
+            pdf.cell(0, 10, f"Ecart detecte : {ecart:.2f} euros", ln=True)
+            pdf.multi_cell(0, 10, "Conformément au RGPD, toutes les pièces analysées pour cet audit ont été définitivement supprimées de nos systèmes à la livraison de ce rapport.")
+            
+            pdf_bytes = pdf.output(dest='S')
+            
+            # Code d'envoi par e-mail
+            try:
+                msg = MIMEMultipart()
+                msg['From'] = EMAIL_EXPEDITEUR
+                msg['To'] = email_client
+                msg['Subject'] = "Votre rapport d'audit BailSafe"
+                msg.attach(MIMEText("Bonjour,\n\nVeuillez trouver ci-joint le rapport d'audit anti-fraude demandé.\n\nCordialement,\nL'équipe BailSafe", 'plain'))
+                
+                part = MIMEBase('application', 'octet-stream')
+                part.set_payload(pdf_bytes)
+                encoders.encode_base64(part)
+                part.add_header('Content-Disposition', 'attachment; filename="Rapport_BailSafe.pdf"')
+                msg.attach(part)
+                
+                server = smtplib.SMTP('smtp.gmail.com', 587)
+                server.starttls()
+                server.login(EMAIL_EXPEDITEUR, MOT_DE_PASSE_EMAIL)
+                server.send_message(msg)
+                server.quit()
+                st.success("✅ Rapport généré et envoyé avec succès au propriétaire !")
+            except Exception as e:
+                st.error(f"Erreur lors de l'envoi de l'e-mail : {e}")
+
+# ==========================================
+# 🚦 ROUTAGE PRINCIPAL
+# ==========================================
+if not st.session_state["authentifie"]:
+    afficher_vitrine()
 else:
-    st.info("Veuillez charger un document ou remplir les données d'analyse pour débloquer l'export et l'envoi du rapport.")
+    afficher_interface_expert()
