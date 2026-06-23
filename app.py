@@ -7,84 +7,36 @@ from email.mime.text import MIMEText
 from email import encoders
 
 # --- CONFIGURATION ---
-st.set_page_config(page_title="BailSafe | Audit Locatif", layout="centered")
+st.set_page_config(page_title="BailSafe | Audit Locatif", layout="wide")
 
-try:
-    MOT_DE_PASSE_ATTENDU = st.secrets["MOT_DE_PASSE_ATTENDU"]
-    EMAIL_EXPEDITEUR = st.secrets["EMAIL_EXPEDITEUR"]
-    MOT_DE_PASSE_EMAIL = st.secrets["MOT_DE_PASSE_EMAIL"]
-except:
-    st.error("Configuration des secrets manquante.")
-    st.stop()
+# --- STYLE CSS POUR L'INTERACTIVITÉ ---
+st.markdown("""
+    <style>
+        .stButton>button { width: 100%; border-radius: 5px; height: 3em; background: #FFD700; color: black; font-weight: bold; }
+        .section-box { padding: 20px; border-radius: 10px; background-color: #0E1117; border: 1px solid #333; margin-bottom: 20px; }
+    </style>
+""", unsafe_allow_html=True)
 
-if "authentifie" not in st.session_state: st.session_state.authentifie = False
+# --- VITRINE INTERACTIVE ---
+# Menu de navigation fixe
+menu = st.sidebar.radio("Navigation", ["🚨 Le Risque", "💡 La Solution", "📄 Exemple Rapport", "🔒 Sécurité", "⚖️ Mentions Légales"])
 
-# --- VITRINE PUBLIQUE (LINEAIRE) ---
-def afficher_vitrine():
-    st.markdown("<h1 style='text-align:center;'>🛡️ BailSafe</h1>", unsafe_allow_html=True)
-    
-    st.subheader("🚨 Le risque des faux dossiers")
-    st.write("Les faux bulletins de salaire menacent votre rentabilité. Un seul impayé peut ruiner votre investissement.")
-    
-    st.subheader("🛡️ Notre solution : Audit 24h")
-    st.write("Pour 20 €, j'analyse vos dossiers : détection Photoshop, vérification mathématique et cohérence fiscale.")
-    
-    st.subheader("📄 Exemple de rapport")
-    st.info("Vous recevez un PDF clair : Statut (Fiable/Suspect), écarts détectés et empreinte numérique.")
-    
-    st.subheader("⚖️ Mentions Légales & RGPD")
-    st.write("Service d'assistance technique. Zéro stockage, destruction immédiate des documents après audit.")
-    
-    if st.text_input("Accès Expert", type="password") == MOT_DE_PASSE_ATTENDU:
-        if st.button("Connexion"): st.session_state.authentifie = True; st.rerun()
+st.title("🛡️ BailSafe")
 
-    st.markdown("### 💬 Contactez-nous :")
-    col1, col2 = st.columns(2)
-    col1.markdown("[![LeBonCoin](https://img.shields.io/badge/LeBonCoin-FF6E00?style=for-the-badge&logo=leboncoin)](https://leboncoin.fr/profil/3780fc14-e927-43d6-b826-40c02a3300c2)")
-    col2.markdown("[![Facebook](https://img.shields.io/badge/Facebook-1877F2?style=for-the-badge&logo=facebook)](https://www.facebook.com/share/1KKBK1mfpV/?mibextid=wwXlfr)")
+if menu == "🚨 Le Risque":
+    st.subheader("Pourquoi sécuriser vos dossiers ?")
+    st.write("Les faux bulletins de salaire et avis d'imposition menacent votre rentabilité.")
+    st.metric("Risque financier", "Élevé", "Impayés en hausse")
 
-# --- INTERFACE EXPERT ---
-def afficher_expert():
-    st.title("🕵️‍♂️ Cockpit BailSafe")
-    if st.button("🔴 Déconnexion"): st.session_state.authentifie = False; st.rerun()
-    
-    file = st.file_uploader("Déposer PDF", type="pdf")
-    if file:
-        with pdfplumber.open(file) as pdf:
-            text = "".join([p.extract_text() or "" for p in pdf.pages])
-            meta = str(pdf.metadata)
-        
-        # Regex auto
-        net = re.search(r"(Net à payer|Net payé)[\s:]*(\d+[\.,]\d+)", text, re.IGNORECASE)
-        cumul = re.search(r"(Cumul|Net imposable)[\s:]*(\d+[\.,]\d+)", text, re.IGNORECASE)
-        
-        n = st.number_input("Net", value=float(net.group(2).replace(',','.')) if net else 0.0)
-        c = st.number_input("Cumul", value=float(cumul.group(2).replace(',','.')) if cumul else 0.0)
-        
-        fraude = any(x in meta.lower() for x in ["photoshop", "canva", "ilovepdf"])
-        if fraude: st.error("🚨 Signatures Photoshop/Canva détectées !")
-        
-        email = st.text_input("E-mail client")
-        if st.button("🚀 Générer et Envoyer Rapport"):
-            pdf = FPDF(); pdf.add_page(); pdf.set_font("Arial", size=12)
-            pdf.cell(200, 10, txt="Rapport d'Audit BailSafe", ln=True, align='C')
-            pdf.cell(200, 10, txt=f"Statut : {'SUSPECT' if fraude else 'FIABLE'}", ln=True)
-            
-            # Envoi
-            msg = MIMEMultipart()
-            msg['From'], msg['To'] = EMAIL_EXPEDITEUR, email
-            msg['Subject'] = "Rapport BailSafe"
-            msg.attach(MIMEText("Voici votre audit.", 'plain'))
-            part = MIMEBase('application', 'octet-stream')
-            part.set_payload(pdf.output(dest='S'))
-            encoders.encode_base64(part)
-            part.add_header('Content-Disposition', 'attachment; filename="Audit.pdf"')
-            msg.attach(part)
-            
-            s = smtplib.SMTP('smtp.gmail.com', 587)
-            s.starttls(); s.login(EMAIL_EXPEDITEUR, MOT_DE_PASSE_EMAIL)
-            s.send_message(msg); s.quit()
-            st.success("✅ Envoyé !")
+elif menu == "💡 La Solution":
+    st.subheader("Notre Expertise 24h")
+    st.success("Audit complet pour 20€ par dossier.")
+    st.write("- 🔎 Analyse Forensique\n- 🧮 Validation Algorithmique")
 
-if st.session_state.authentifie: afficher_expert()
-else: afficher_vitrine()
+# (Ajoute les autres conditions elif pour chaque section...)
+
+st.divider()
+st.markdown("### 💬 Prêt à sécuriser vos dossiers ?")
+col1, col2 = st.columns(2)
+col1.markdown("[![LeBonCoin](https://img.shields.io/badge/LeBonCoin-FF6E00?style=for-the-badge&logo=leboncoin)](https://leboncoin.fr/profil/3780fc14-e927-43d6-b826-40c02a3300c2)")
+col2.markdown("[![Facebook](https://img.shields.io/badge/Facebook-1877F2?style=for-the-badge&logo=facebook)](https://www.facebook.com/share/1KKBK1mfpV/?mibextid=wwXlfr)")
