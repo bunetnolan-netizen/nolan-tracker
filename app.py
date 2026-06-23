@@ -143,6 +143,23 @@ def build_objection_cards() -> list[dict]:
     ]
 
 
+def build_now_reason_cards() -> list[dict]:
+    return [
+        {
+            "title": "Agir avant la signature",
+            "body": "Le meilleur moment pour vérifier un dossier, c’est avant qu’un problème ne devienne coûteux.",
+        },
+        {
+            "title": "Garder un argument clair",
+            "body": "Un rapport simple permet de justifier une décision avec sérénité et professionnalisme.",
+        },
+        {
+            "title": "Éviter les mauvaises surprises",
+            "body": "Un contrôle préventif vaut souvent mieux qu’une correction tardive et conflictuelle.",
+        },
+    ]
+
+
 def build_report_pdf(statut: str, ecart: float, fraude_meta: bool, est_scan: bool) -> bytes:
     statut_safe = re.sub(r'[^\x00-\x7F]+', '', statut)
 
@@ -522,6 +539,24 @@ def afficher_vitrine():
                 unsafe_allow_html=True,
             )
 
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #111827 0%, #1f2937 100%); border: 1px solid #f59e0b; border-radius: 16px; padding: 16px 18px; margin: 18px 0 6px 0; color: white;">
+        <h4 style="margin-top: 0; color: white;">⚡ Pourquoi agir maintenant</h4>
+    </div>
+    """, unsafe_allow_html=True)
+    now_cols = st.columns(len(build_now_reason_cards()))
+    for col, item in zip(now_cols, build_now_reason_cards()):
+        with col:
+            st.markdown(
+                f"""
+                <div class="premium-card" style="background: linear-gradient(135deg, #fef3c7 0%, #fff7ed 100%); border: 1px solid #f59e0b; border-radius: 12px; padding: 14px; min-height: 140px;">
+                    <h5 style="margin-top: 0; margin-bottom: 8px; color: #92400e;">{item['title']}</h5>
+                    <p style="margin: 0; color: #78350f;">{item['body']}</p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
     cta = build_cta_banner()
     st.markdown(
         f"""
@@ -541,25 +576,6 @@ def afficher_vitrine():
         unsafe_allow_html=True,
     )
 
-    st.markdown("""
-    <div class="premium-card" style="background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%); border: 1px solid #93c5fd; border-radius: 16px; padding: 16px 18px; margin: 18px 0 14px 0; box-shadow: 0 10px 24px rgba(15,23,42,0.05);">
-        <h4 style="margin-top: 0; color: #0f172a;">⭐ Témoignages de confiance</h4>
-    </div>
-    """, unsafe_allow_html=True)
-    proof_items = build_social_proof_items()
-    proof_cols = st.columns(len(proof_items))
-    for col, item in zip(proof_cols, proof_items):
-        with col:
-            st.markdown(
-                f"""
-                <div style="background: #ffffff; border: 1px solid #dbeafe; border-radius: 12px; padding: 14px; min-height: 120px;">
-                    <p style="margin: 0 0 8px 0; color: #0f172a; font-style: italic;">“{item['quote']}”</p>
-                    <p style="margin: 0; color: #475569; font-size: 0.92rem;">{item['author']}</p>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-    
     st.divider()
     with st.expander("🔐 Accès Expert"):
         mdp_saisi = st.text_input("Mot de passe", type="password")
