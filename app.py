@@ -7,6 +7,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
 from email import encoders
+import os
 
 # ==========================================
 # ⚙️ CONFIGURATION & IDENTIFIANTS
@@ -23,31 +24,61 @@ if "authentifie" not in st.session_state:
     st.session_state["authentifie"] = False
 
 # ==========================================
-# 🌍 PARTIE 1 : LA VITRINE PUBLIQUE
+# 🌍 PARTIE 1 : LA VITRINE PUBLIQUE (DYNAMISÉE)
 # ==========================================
 def afficher_vitrine():
-    st.markdown("<h1 style='text-align: center; color: #1E3A8A;'>🛡️ BailSafe</h1>", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align: center;'>Louez votre bien l'esprit tranquille.</h3>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; font-size: 18px; color: gray;'>Détection de fraudes documentaires par IA et analyse heuristique.</p>", unsafe_allow_html=True)
-    st.divider()
-
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("### 🚨 Le Constat")
-        st.write("Gérer une location seul est devenu un vrai parcours du combattant face à l'explosion des faux dossiers (bulletins de salaire modifiés, faux avis d'imposition). Un propriétaire n'a ni le temps ni les outils pour repérer ces fraudes.")
+    # --- INTÉGRATION DU LOGO ---
+    col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.markdown("### 💡 Notre Solution")
-        st.write("**BailSafe** audite les candidatures de vos futurs locataires. Pour **15 € par dossier**, bénéficiez d'une détection de fraudes graphiques et d'une vérification mathématique sous 24h.")
-    
+        # Le code essaie de charger "logo.png". S'il n'est pas là, il met un titre de secours.
+        try:
+            st.image("logo.png", use_container_width=True)
+        except Exception:
+            st.markdown("<h1 style='text-align: center; color: #1E3A8A;'>🛡️ BailSafe</h1>", unsafe_allow_html=True)
+            
+    st.markdown("<h2 style='text-align: center;'>Louez votre bien l'esprit tranquille.</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; font-size: 16px; color: gray;'>Le premier filtre anti-fraude documentaire par analyse heuristique.</p>", unsafe_allow_html=True)
     st.divider()
-    st.info("🔒 **100% Sécurisé & Conforme RGPD :** Conformément au RGPD et à l'AI Act, BailSafe agit comme un filtre local. Aucun document n'est stocké. L'intégralité des fichiers sources est définitivement détruite dès la clôture de l'audit.")
 
-    st.markdown("<h3 style='text-align: center;'>📩 Sécurisez vos dossiers dès maintenant</h3>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center;'>Contactez-moi directement via LeBonCoin pour me confier votre première analyse.</p>", unsafe_allow_html=True)
+    # --- ONGLETS INTERACTIFS POUR LE CLIENT ---
+    tab_constat, tab_solution, tab_rgpd = st.tabs(["🚨 Le Risque", "💡 La Solution BailSafe", "🔒 Sécurité & RGPD"])
+
+    with tab_constat:
+        st.markdown("### Pourquoi sécuriser vos dossiers ?")
+        st.write("Gérer une location seul est devenu un vrai parcours du combattant face à l'explosion des faux dossiers (bulletins de salaire falsifiés, faux avis d'imposition).")
+        
+        # Blocs dynamiques (Metrics)
+        colA, colB = st.columns(2)
+        colA.metric(label="Risque financier", value="Élevé", delta="Impayés en hausse", delta_color="inverse")
+        colB.metric(label="Détection manuelle", value="Impossible", delta="Nécessite une expertise", delta_color="inverse")
+        st.info("Un propriétaire n'a généralement ni les outils informatiques ni le temps de repérer des pixels modifiés ou des incohérences mathématiques cachées.")
+
+    with tab_solution:
+        st.markdown("### Notre Expertise à votre service")
+        st.success("**Pour 15 € par dossier**, bénéficiez d'un audit express sous 24h.")
+        st.markdown("""
+        - 🔎 **Analyse Forensique** : Détection des traces de logiciels de retouche (Photoshop, Canva, etc.).
+        - 🧮 **Validation Mathématique** : Vérification stricte des cumuls et montants déclarés.
+        - 📄 **Rapport Officiel** : Un livrable PDF clair pour prendre votre décision l'esprit léger.
+        """)
+
+    with tab_rgpd:
+        st.markdown("### 100% Conforme & Zéro Stockage")
+        st.warning("⚖️ **Engagement Légal** : Conformément au RGPD et à l'AI Act, BailSafe agit comme un filtre local en mémoire vive.")
+        st.markdown("""
+        - **Aucune base de données** : Nous ne stockons aucun document.
+        - **Destruction immédiate** : L'intégralité des fichiers sources est définitivement purgée de nos serveurs dès l'envoi de votre rapport.
+        """)
+
+    st.divider()
+    
+    # --- APPEL À L'ACTION (CTA) ---
+    st.markdown("<h3 style='text-align: center;'>📩 Confiez-nous votre première analyse</h3>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center;'>Contactez-moi directement via LeBonCoin pour sécuriser vos dossiers.</p>", unsafe_allow_html=True)
     
     st.divider()
     
-    # Espace de connexion admin
+    # Espace de connexion admin (Discret en bas de page)
     with st.expander("🔐 Accès Expert (Administration)"):
         mdp_saisi = st.text_input("Mot de passe", type="password")
         if st.button("Se connecter"):
@@ -61,37 +92,28 @@ def afficher_vitrine():
 # 🕵️‍♂️ PARTIE 2 : L'INTERFACE EXPERT (PRIVÉE)
 # ==========================================
 def afficher_interface_expert():
-    # En-tête du Dashboard
     colA, colB = st.columns([4, 1])
     with colA:
-        st.title("Tableau de bord | BailSafe 🕵️‍♂️")
+        st.title("Dashboard | BailSafe 🕵️‍♂️")
     with colB:
-        if st.button("🔴 Se déconnecter"):
+        if st.button("🔴 Déconnexion"):
             st.session_state["authentifie"] = False
             st.rerun()
             
-    # Bandeau RGPD
-    st.warning("⚖️ Rappel RGPD : Ne conservez aucune copie des documents. L'outil agit en Pass-Through (mémoire vive).")
+    st.warning("⚖️ Rappel RGPD : Ne conservez aucune copie des documents. L'outil agit en Pass-Through.")
 
-    # Upload du document
-    fichier_pdf = st.file_uploader("📂 Chargez le PDF du bulletin de salaire à analyser", type="pdf")
+    fichier_pdf = st.file_uploader("📂 Chargez le PDF du bulletin de salaire", type="pdf")
     
     if fichier_pdf is not None:
-        # Création des onglets pour un rendu professionnel
-        tab1, tab2, tab3 = st.tabs(["📊 Analyse & Scoring", "🔎 Métadonnées (IA)", "📤 Rapport & Envoi"])
-        
+        tab1, tab2, tab3 = st.tabs(["📊 Analyse & Regex", "🔎 Forensics IA", "📤 Rapport & Envoi"])
         texte_brut = ""
         metadata_pdf = {}
         
-        # Lecture du PDF
         with pdfplumber.open(fichier_pdf) as pdf:
             metadata_pdf = pdf.metadata
             for page in pdf.pages:
                 texte_brut += page.extract_text() + "\n"
         
-        # ---------------------------------------------------------
-        # ONGLET 1 : ANALYSE MATHÉMATIQUE & REGEX
-        # ---------------------------------------------------------
         with tab1:
             st.subheader("1. Extraction Automatique (Regex)")
             net_a_payer_match = re.search(r'(?i)net\s*[àa]\s*payer\s*.*?(\d[\d\s]*[.,]?\d*)', texte_brut)
@@ -108,39 +130,30 @@ def afficher_interface_expert():
             calcul_theorique = net_saisi * nb_mois
             ecart = abs(cumul_saisi - calcul_theorique)
             
-            st.markdown("### 2. Résultat Financier")
             m1, m2 = st.columns(2)
-            m1.metric("Cumul Théorique calculé", f"{calcul_theorique:.2f} €")
+            m1.metric("Cumul Théorique", f"{calcul_theorique:.2f} €")
             m2.metric("Écart Détecté", f"{ecart:.2f} €", delta_color="inverse", delta=f"{ecart:.2f} €" if ecart > 0 else "Parfait")
             
             fraude_math = ecart > 150
 
-        # ---------------------------------------------------------
-        # ONGLET 2 : MÉTADONNÉES & DETECTEUR PHOTOSHOP
-        # ---------------------------------------------------------
         with tab2:
-            st.subheader("Analyse de l'ADN du fichier (Forensics)")
+            st.subheader("Analyse de l'ADN du fichier")
             createur = metadata_pdf.get('Creator', '')
             producteur = metadata_pdf.get('Producer', '')
             meta_string = str(createur) + " " + str(producteur)
             
-            st.write(f"**Outil de création original :** {producteur if producteur else 'Inconnu'}")
+            st.write(f"**Outil original :** {producteur if producteur else 'Inconnu'}")
             
             logiciels_suspects = ["photoshop", "canva", "ilovepdf", "illustrator", "gimp"]
             fraude_meta = any(logiciel in meta_string.lower() for logiciel in logiciels_suspects)
             
             if fraude_meta:
-                st.error("🚨 ALERTE : Utilisation d'un logiciel d'édition graphique détectée dans les métadonnées !")
+                st.error("🚨 ALERTE : Utilisation d'un logiciel d'édition graphique détectée !")
             else:
-                st.success("✅ Aucune trace d'outil d'édition graphique suspect n'a été trouvée dans les métadonnées.")
+                st.success("✅ Aucune trace d'outil d'édition suspecte trouvée.")
 
-        # ---------------------------------------------------------
-        # ONGLET 3 : SCORING GLOBAL ET ENVOI DIRECT
-        # ---------------------------------------------------------
         with tab3:
-            st.subheader("Scoring Global Intelligent")
-            
-            # Définition du statut global basé sur l'IA heuristique et les mathématiques
+            st.subheader("Scoring & Expédition")
             if fraude_math and fraude_meta:
                 statut = "CRITIQUE (Falsification avérée)"
                 st.error(f"Statut : {statut}")
@@ -151,15 +164,12 @@ def afficher_interface_expert():
                 statut = "FIABLE (Logique respectée)"
                 st.success(f"Statut : {statut}")
                 
-            st.divider()
-            st.markdown("### Expédition du Rapport Client")
-            email_client = st.text_input("Adresse e-mail du client (Propriétaire) :", placeholder="client@email.com")
+            email_client = st.text_input("E-mail du client (Propriétaire) :", placeholder="client@email.com")
             
             if st.button("📄 Générer & Envoyer le Rapport"):
                 if not email_client:
                     st.warning("Veuillez saisir une adresse e-mail valide.")
                 else:
-                    # Création du PDF fpdf2 (Sans emojis pour éviter le plantage)
                     pdf = FPDF()
                     pdf.add_page()
                     pdf.set_font("Helvetica", style="B", size=16)
@@ -180,13 +190,12 @@ def afficher_interface_expert():
                     
                     pdf_bytes = pdf.output(dest='S')
                     
-                    # Envoi par e-mail
                     try:
                         msg = MIMEMultipart()
                         msg['From'] = EMAIL_EXPEDITEUR
                         msg['To'] = email_client
                         msg['Subject'] = "Votre rapport d'audit BailSafe sécurisé"
-                        msg.attach(MIMEText("Bonjour,\n\nVeuillez trouver ci-joint le rapport d'audit anti-fraude express de votre candidat.\n\nCordialement,\nL'équipe BailSafe", 'plain'))
+                        msg.attach(MIMEText("Bonjour,\n\nVeuillez trouver ci-joint le rapport d'audit anti-fraude de votre candidat.\n\nCordialement,\nL'équipe BailSafe", 'plain'))
                         
                         part = MIMEBase('application', 'octet-stream')
                         part.set_payload(pdf_bytes)
@@ -199,9 +208,9 @@ def afficher_interface_expert():
                         server.login(EMAIL_EXPEDITEUR, MOT_DE_PASSE_EMAIL)
                         server.send_message(msg)
                         server.quit()
-                        st.success("✅ Rapport généré et envoyé avec succès au propriétaire ! Les fichiers locaux sont purgés.")
+                        st.success("✅ Rapport généré et envoyé ! Fichiers locaux purgés.")
                     except Exception as e:
-                        st.error(f"Erreur lors de l'envoi de l'e-mail : {e}")
+                        st.error(f"Erreur d'envoi : {e}")
 
 # ==========================================
 # 🚦 ROUTAGE PRINCIPAL
