@@ -19,55 +19,43 @@ try:
     EMAIL_EXPEDITEUR = st.secrets["EMAIL_EXPEDITEUR"]
     MOT_DE_PASSE_EMAIL = st.secrets["MOT_DE_PASSE_EMAIL"]
 except Exception:
-    st.error("⚠️ Erreur : Configuration des secrets manquante.")
+    st.error("⚠️ Erreur : Configuration des secrets manquante sur Streamlit.")
     st.stop()
 
 if "authentifie" not in st.session_state:
     st.session_state["authentifie"] = False
 
 # ==========================================
-# 🌍 PARTIE 1 : VITRINE (LANDING PAGE DYNAMIQUE)
+# 🌍 PARTIE 1 : VITRINE (LANDING PAGE FLUIDE)
 # ==========================================
 def afficher_vitrine():
-    # En-tête dynamique
+    # Header Premium
     st.markdown("""
         <div style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); padding: 40px; border-radius: 20px; text-align: center; color: white;">
             <h1 style="margin: 0; font-size: 3em;">🛡️ BailSafe</h1>
-            <p style="font-size: 1.3em; opacity: 0.9;">Louez votre bien en toute sécurité</p>
+            <p style="font-size: 1.3em; opacity: 0.9;">Audit Anti-Fraude Documentaire</p>
         </div>
     """, unsafe_allow_html=True)
     
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    # Section Risque
-    st.markdown("### 🚨 Le risque est réel")
-    st.write("Les fraudes aux dossiers locatifs explosent. Un propriétaire seul est une cible facile.")
+    st.markdown("<br>### 🚨 Le risque est réel", unsafe_allow_html=True)
+    st.write("Les fraudes aux dossiers locatifs (bulletins falsifiés) explosent. Ne soyez plus une cible.")
     col1, col2 = st.columns(2)
-    col1.metric("Risque financier", "Élevé", "Hausse 2026")
+    col1.metric("Risque financier", "Élevé", "Attention")
     col2.metric("Détection manuelle", "Complexité max", "Risque erreur")
     
     st.markdown("<br><hr><br>", unsafe_allow_html=True)
     
-    # Section Solution
     st.markdown("### 💡 L'audit expert BailSafe")
-    st.success("✅ Audit technique : 20 € par dossier (Livraison 24h)")
+    st.success("✅ Audit technique approfondi : 20 € par dossier (Livraison sous 24h)")
     st.markdown("""
-    *   🔎 **Analyse Forensique** (Détection Photoshop/Canva)
-    *   🧮 **Validation Algorithmique** (Cohérence fiscale)
-    *   📄 **Rapport PDF Certifié** (Preuve de fiabilité)
+    * 🔎 **Analyse Forensique** (Détection Photoshop/Canva)
+    * 🧮 **Validation Algorithmique** (Cohérence fiscale)
+    * 📄 **Rapport PDF Certifié** (Preuve de fiabilité)
     """)
     
     st.markdown("<br><hr><br>", unsafe_allow_html=True)
     
-    # Section Preuve
-    st.markdown("### 📄 Exemple de livrable")
-    st.info("Vous recevez un rapport technique qui pointe précisément les anomalies : écarts de calcul, signatures de logiciels de retouche, et score de confiance.")
-    
-    st.markdown("<br><hr><br>", unsafe_allow_html=True)
-    
-    # Section Contact
-    st.markdown("### 📩 Contactez-moi")
-    st.write("Cliquez pour sécuriser votre prochain dossier :")
+    st.markdown("### 📩 Contactez-moi pour sécuriser un dossier")
     st.markdown("""
         <div style="display: flex; gap: 20px; justify-content: center;">
             <a href="https://leboncoin.fr/profil/3780fc14-e927-43d6-b826-40c02a3300c2" style="background:#f56523; color:white; padding:15px; border-radius:10px; text-decoration:none; font-weight:bold;">🛒 LeBonCoin</a>
@@ -76,8 +64,13 @@ def afficher_vitrine():
     """, unsafe_allow_html=True)
     
     st.markdown("<br><br>", unsafe_allow_html=True)
-    with st.expander("⚖️ Mentions Légales & 🔐 Accès Expert"):
-        st.write("Assistance technique sans garantie d'impayé. Propriétaire souverain de sa décision.")
+    
+    # Mentions Légales & Admin
+    with st.expander("⚖️ Mentions Légales & Accès Expert"):
+        st.write("""
+        **Clause de non-responsabilité :** BailSafe fournit une assistance technique. 
+        L'audit ne constitue pas une garantie d'impayé. La décision finale appartient au bailleur.
+        """)
         mdp_saisi = st.text_input("Mot de passe", type="password")
         if st.button("Se connecter"):
             if mdp_saisi == MOT_DE_PASSE_ATTENDU:
@@ -93,8 +86,8 @@ def afficher_interface_expert():
         st.session_state["authentifie"] = False
         st.rerun()
 
-    with st.expander("💸 Message type paiement"):
-        st.code("Bonjour ! Pour lancer l'audit technique, merci de régler les 20€ : [TON LIEN]", language="text")
+    # Tunnel de paiement intégré
+    st.code("Message client : Bonjour ! Merci pour le dossier. Pour lancer l'audit (20€), merci de régler via ce lien : [TON LIEN]", language="text")
 
     fichier = st.file_uploader("📂 PDF à auditer", type="pdf")
     
@@ -102,28 +95,33 @@ def afficher_interface_expert():
         with pdfplumber.open(fichier) as pdf:
             txt = "".join([p.extract_text() or "" for p in pdf.pages])
             meta = pdf.metadata
-            
+        
+        # Détection scan
         est_scan = len(txt.strip()) < 20
         
+        # Analyse
         st.subheader("Analyse de cohérence")
-        # Logique de calcul simplifiée pour le dynamisme
         if est_scan:
             st.warning("⚠️ Scan détecté : Vérification manuelle requise.")
+            fraude_math = False
+            ecart = 0
         else:
-            st.success("✅ Texte extrait, analyse en cours...")
-        
-        # Forensics
-        meta_str = str(meta)
-        fraude_meta = any(x in meta_str.lower() for x in ["photoshop", "canva", "ilovepdf"])
-        
-        if fraude_meta:
-            st.error("🚨 Signatures de logiciel de retouche détectées !")
-        else:
-            st.success("✅ Structure graphique saine.")
+            net = re.search(r'(?i)net\s*[àa]\s*payer\s*.*?(\d[\d\s]*[.,]?\d*)', txt)
+            cumul = re.search(r'(?i)cumul\s*imposable\s*.*?(\d[\d\s]*[.,]?\d*)', txt)
+            net_val = float(net.group(1).replace(' ', '').replace(',', '.')) if net else 0
+            cumul_val = float(cumul.group(1).replace(' ', '').replace(',', '.')) if cumul else 0
+            ecart = abs(cumul_val - (net_val * 1)) # Simplification
+            fraude_math = ecart > 150
+            st.success("✅ Extraction automatique effectuée.")
 
-        st.subheader("Envoi Rapport")
+        # Forensics
+        fraude_meta = any(x in str(meta).lower() for x in ["photoshop", "canva", "ilovepdf"])
+        if fraude_meta: st.error("🚨 Signatures de logiciel de retouche détectées !")
+        else: st.success("✅ Structure graphique saine.")
+
+        # Envoi
         email = st.text_input("E-mail du client :")
-        if st.button("🚀 Valider et Envoyer"):
+        if st.button("🚀 Valider et Envoyer Rapport"):
             pdf_gen = FPDF()
             pdf_gen.add_page()
             pdf_gen.cell(0, 10, "Rapport BailSafe : Audit Technique", ln=True, align="C")
@@ -132,7 +130,7 @@ def afficher_interface_expert():
             try:
                 msg = MIMEMultipart()
                 msg['From'], msg['To'] = EMAIL_EXPEDITEUR, email
-                msg['Subject'] = "[BailSafe] Votre Rapport"
+                msg['Subject'] = "[BailSafe] Votre Rapport d'Audit"
                 msg.attach(MIMEText("Bonjour, voici votre rapport d'audit (20€).", 'plain'))
                 part = MIMEBase('application', 'octet-stream')
                 part.set_payload(pdf_bytes)
