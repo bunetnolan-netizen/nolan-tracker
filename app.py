@@ -1,5 +1,6 @@
 import re
 import smtplib
+import unicodedata
 from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
@@ -160,24 +161,99 @@ def build_now_reason_cards() -> list[dict]:
     ]
 
 
+def build_expert_action_summary(statut: str, ecart: float, fraude_meta: bool, est_scan: bool) -> str:
+    if statut.startswith("CRITIQUE") or est_scan:
+        return "Action prioritaire : demander l’original du document et bloquer la validation tant que la vérification n’est pas faite."
+    if "SUSPECT" in statut or fraude_meta or ecart > 150:
+        return "Action prioritaire : alerter le bailleur sur les incohérences et proposer une vérification humaine rapide avant signature."
+    return "Action prioritaire : conserver le dossier avec un suivi simple et une interprétation claire du rapport."
+
+
+def sanitize_pdf_text(text: str) -> str:
+    normalized = unicodedata.normalize("NFKD", text)
+    ascii_text = normalized.encode("ascii", "ignore").decode("ascii")
+    for src, dst in {
+        "’": "'",
+        "‘": "'",
+        "“": '"',
+        "”": '"',
+        "…": "...",
+        "–": "-",
+        "—": "-",
+    }.items():
+        ascii_text = ascii_text.replace(src, dst)
+    return ascii_text
+
+
 def build_report_pdf(statut: str, ecart: float, fraude_meta: bool, est_scan: bool) -> bytes:
-    statut_safe = re.sub(r'[^\x00-\x7F]+', '', statut)
+    statut_safe = sanitize_pdf_text(statut)
+    is_suspicious = statut.startswith("CRITIQUE") or "SUSPECT" in statut or fraude_meta or est_scan or ecart > 150
 
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Helvetica", style="B", size=16)
-    pdf.cell(0, 10, "Rapport d'Audit - BailSafe", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
-    pdf.ln(10)
-    pdf.set_font("Helvetica", size=12)
-    pdf.cell(0, 10, f"Diagnostic Global : {statut_safe}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    if not est_scan:
-        pdf.cell(0, 10, f"Ecart budgetaire calcule : {ecart:.2f} euros", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    if fraude_meta:
-        pdf.cell(0, 10, "Alerte : Fichier modifie via un editeur tiers.", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 10, sanitize_pdf_text("Rapport d'Audit - BailSafe"), new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
+    pdf.set_font("Helvetica", size=11)
+    pdf.cell(0, 8, sanitize_pdf_text("Analyse documentaire et controle de coherence des pieces fournies"), new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
+    pdf.ln(4)
 
-    pdf.ln(15)
-    pdf.set_font("Helvetica", style="I", size=10)
-    pdf.multi_cell(0, 10, "RGPD : Audit realise en memoire locale. Aucune donnee conservee.")
+    pdf.set_font("Helvetica", style="B", size=12)
+    pdf.cell(0, 8, f"Diagnostic global : {statut_safe}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.set_font("Helvetica", size=10)
+    text_width = pdf.w - 2 * pdf.l_margin
+    if not est_scan:
+        pdf.multi_cell(text_width, 6, f"- Ecart budgetaire observe : {ecart:.2f} EUR")
+    if fraude_meta:
+        pdf.multi_cell(text_width, 6, sanitize_pdf_text("- Elements de manipulation : signatures d'edition graphique detectees."))
+    else:
+        pdf.multi_cell(text_width, 6, sanitize_pdf_text("- Elements de manipulation : aucune trace d'edition graphique suspecte observee."))
+    if est_scan:
+        pdf.multi_cell(text_width, 6, sanitize_pdf_text("- Etat du document : lecture automatique limitee, verification manuelle recommandee."))
+    else:
+        pdf.multi_cell(text_width, 6, sanitize_pdf_text("- Etat du document : texte numerique detecte, coherence calculee automatiquement."))
+
+    pdf.ln(4)
+    pdf.set_font("Helvetica", style="B", size=11)
+    pdf.cell(0, 7, sanitize_pdf_text("Documents fournis"), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.set_font("Helvetica", size=10)
+    pdf.multi_cell(text_width, 6, sanitize_pdf_text("- Pieces de candidature, justificatifs de revenus et documents associes."))
+    pdf.multi_cell(text_width, 6, sanitize_pdf_text("- Elements verifies : coherence des montants, logique documentaire, presence d'indices de modification ou d'incoherences."))
+
+    pdf.ln(2)
+    pdf.set_font("Helvetica", style="B", size=11)
+    pdf.cell(0, 7, sanitize_pdf_text("Appreciation de la qualite du dossier"), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.set_font("Helvetica", size=10)
+    if is_suspicious:
+        pdf.multi_cell(text_width, 6, sanitize_pdf_text("Le dossier presente des elements qui appellent a la prudence. Les incoherences observees ou les traces de modification doivent etre traitees comme des signaux d'alerte."))
+        pdf.multi_cell(text_width, 6, sanitize_pdf_text("Les pieces fournies ne permettent pas d'affirmer une conformite complete a un standard de fiabilite eleve."))
+    else:
+        pdf.multi_cell(text_width, 6, sanitize_pdf_text("Le dossier apparait globalement coherent et ne revele pas d'anomalie majeure au regard des elements controles."))
+        pdf.multi_cell(text_width, 6, sanitize_pdf_text("La qualite documentaire est compatible avec une validation normale, sous reserve d'un controle final humain."))
+
+    pdf.ln(2)
+    pdf.set_font("Helvetica", style="B", size=11)
+    pdf.cell(0, 7, sanitize_pdf_text("Action corrective"), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.set_font("Helvetica", size=10)
+    if is_suspicious:
+        pdf.multi_cell(text_width, 6, sanitize_pdf_text("- Demander l'original du document ou la piece justificative complementaire."))
+        pdf.multi_cell(text_width, 6, sanitize_pdf_text("- Verifier manuellement les montants et les donnees sensibles avant toute decision finale."))
+        pdf.multi_cell(text_width, 6, sanitize_pdf_text("- Conserver la trace du diagnostic et du traitement du dossier."))
+    else:
+        pdf.multi_cell(text_width, 6, sanitize_pdf_text("- Conserver le dossier avec un suivi simple et documente."))
+        pdf.multi_cell(text_width, 6, sanitize_pdf_text("- Utiliser ce rapport comme justificatif de rigueur et de conformite."))
+
+    pdf.ln(2)
+    pdf.set_font("Helvetica", style="B", size=11)
+    pdf.cell(0, 7, sanitize_pdf_text("Conclusion"), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.set_font("Helvetica", size=10)
+    if is_suspicious:
+        pdf.multi_cell(text_width, 6, sanitize_pdf_text("Le dossier necessite une attention particuliere avant validation. L'objectif de ce rapport est d'apporter un niveau de confiance supplementaire et d'eviter une decision hative."))
+    else:
+        pdf.multi_cell(text_width, 6, sanitize_pdf_text("Le dossier presente un niveau de coherence satisfaisant et peut etre traite comme un dossier serieux, sous reserve de la procedure interne de validation."))
+
+    pdf.ln(6)
+    pdf.set_font("Helvetica", style="I", size=9)
+    pdf.multi_cell(text_width, 5, sanitize_pdf_text("RGPD : Audit realise en memoire locale. Aucune donnee n'est conservee durablement a l'issue du traitement."))
 
     return bytes(pdf.output(dest='S'))
 
@@ -679,6 +755,7 @@ Cordialement, Nolan - BailSafe""", language="text")
                 
             st.info(f"Statut calculé : {statut}")
             st.markdown(f"<div style='background:#111827;padding:16px;border-radius:12px;color:#f9fafb;border:1px solid #374151;'> <b>Résumé expert :</b> {build_analysis_summary(statut, ecart, fraude_meta, est_scan)}</div>", unsafe_allow_html=True)
+            st.info(build_expert_action_summary(statut, ecart, fraude_meta, est_scan))
             recommendations = build_ai_recommendations(statut, ecart, fraude_meta, est_scan)
             st.markdown("### 🎯 Recommandations IA")
             for item in recommendations:
