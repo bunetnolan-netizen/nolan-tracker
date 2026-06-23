@@ -1,40 +1,169 @@
-import streamlit as st
-import pdfplumber
 import re
-from fpdf import FPDF
 import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.base import MIMEBase
-from email.mime.text import MIMEText
 from email import encoders
+from email.mime.base import MIMEBase
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
-# Configuration de la page
-st.set_page_config(page_title="BailSafe | Audit Locatif Expert", page_icon="🛡️", layout="centered")
+import pdfplumber
+import streamlit as st
+from fpdf import FPDF
+from fpdf.enums import XPos, YPos
 
-# ==========================================
-# 🔐 CONFIGURATION SÉCURISÉE (STREAMLIT SECRETS)
-# ==========================================
-try:
-    MOT_DE_PASSE_ATTENDU = st.secrets["MOT_DE_PASSE_ATTENDU"]
-    EMAIL_EXPEDITEUR = st.secrets["EMAIL_EXPEDITEUR"]
-    MOT_DE_PASSE_EMAIL = st.secrets["MOT_DE_PASSE_EMAIL"]
-except Exception:
-    st.error("⚠️ Les secrets de sécurité ne sont pas configurés sur le serveur. Impossible de démarrer l'application.")
-    st.stop()
+EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
-# Gestion de la session
-if "authentifie" not in st.session_state:
-    st.session_state["authentifie"] = False
+MOT_DE_PASSE_ATTENDU = ""
+EMAIL_EXPEDITEUR = ""
+MOT_DE_PASSE_EMAIL = ""
+
+
+def is_valid_email(email: str) -> bool:
+    if not email:
+        return False
+    return bool(EMAIL_PATTERN.fullmatch(email.strip()))
+
+
+def get_report_filename(statut: str) -> str:
+    safe_statut = re.sub(r'[^A-Za-z0-9]+', '-', statut).strip('-').lower() or "rapport"
+    return f"rapport-bailsafe-{safe_statut}.pdf"
+
+
+def build_analysis_summary(statut: str, ecart: float, fraude_meta: bool, est_scan: bool) -> str:
+    severity = "Alerte critique" if statut.startswith("CRITIQUE") else "Alerte détectée" if "SUSPECT" in statut else "Aucune anomalie majeure"
+    details = []
+    if est_scan:
+        details.append("Analyse limitée par absence de texte numérique dans le document.")
+    else:
+        details.append(f"Écart budgétaire calculé à {ecart:.2f} €.")
+    if fraude_meta:
+        details.append("Signatures d’édition graphique détectées.")
+    else:
+        details.append("Aucune signature d’outil d’édition suspecte observée.")
+    return f"{severity} — {statut}. " + " ".join(details)
+
+
+def build_ai_recommendations(statut: str, ecart: float, fraude_meta: bool, est_scan: bool) -> list[str]:
+    if statut.startswith("CRITIQUE") or est_scan:
+        return [
+            "Bloquer la validation du dossier tant que l’original n’est pas vérifié.",
+            "Demander une pièce justificative complémentaire au candidat.",
+            "Préparer un message de relance clair et professionnel.",
+        ]
+    if "SUSPECT" in statut or fraude_meta or ecart > 150:
+        return [
+            "Mettre en garde le bailleur sur les incohérences détectées.",
+            "Proposer une vérification humaine rapide avant signature.",
+            "Valoriser l’offre d’audit premium pour sécuriser le dossier.",
+        ]
+    return [
+        "Conserver le dossier avec un suivi simple.",
+        "Présenter l’audit comme une preuve de rigueur et de fiabilité.",
+        "Rassurer le bailleur sur la qualité du dossier.",
+    ]
+
+
+def build_ai_insight(intent: str, statut: str, ecart: float, fraude_meta: bool, est_scan: bool) -> str:
+    recommendations = build_ai_recommendations(statut, ecart, fraude_meta, est_scan)
+    first_action = recommendations[0]
+    return (
+        f"BailSafe détecte une situation {statut.lower()} pour votre objectif : {intent}. "
+        f"Le prochain mouvement recommandé est : {first_action} "
+        f"L’audit premium reste à 20 € par dossier pour aller plus vite et plus loin."
+    )
+
+
+def build_gain_simulation(dossiers_par_mois: int) -> tuple[int, int, int]:
+    minutes_saved = dossiers_par_mois * 25
+    risk_reduced = min(95, dossiers_par_mois * 12)
+    estimated_value = dossiers_par_mois * 180
+    return minutes_saved, risk_reduced, estimated_value
+
+
+def build_ai_reply(user_message: str) -> str:
+    lowered = user_message.lower()
+    if "prix" in lowered or "combien" in lowered or "coû" in lowered:
+        return "L’audit premium coûte 20 € par dossier, avec un rapport clair livré rapidement."
+    if "rapide" in lowered or "vite" in lowered:
+        return "Oui, le workflow est pensé pour être ultra rapide : analyse, verdict, rapport PDF."
+    if "risque" in lowered or "sécur" in lowered:
+        return "BailSafe aide à réduire les risques de dossiers douteux et à gagner en sérénité."
+    return "Je peux vous aider à mieux comprendre la valeur de l’audit, son coût ou sa rapidité."
+
+
+def build_value_pillars() -> list[str]:
+    return [
+        "Analyse rapide et lisible en moins de 24 heures.",
+        "Rapport PDF prêt à partager avec vos partenaires.",
+        "Protection contre les incohérences et les dossiers douteux.",
+    ]
+
+
+def build_conversion_pitch() -> str:
+    return "Choisir BailSafe, c’est choisir un dossier plus sûr, sécuriser votre décision, gagner du temps et agir avec plus de sérénité sur chaque dossier."
+
+
+def build_report_pdf(statut: str, ecart: float, fraude_meta: bool, est_scan: bool) -> bytes:
+    statut_safe = re.sub(r'[^\x00-\x7F]+', '', statut)
+
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Helvetica", style="B", size=16)
+    pdf.cell(0, 10, "Rapport d'Audit - BailSafe", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
+    pdf.ln(10)
+    pdf.set_font("Helvetica", size=12)
+    pdf.cell(0, 10, f"Diagnostic Global : {statut_safe}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    if not est_scan:
+        pdf.cell(0, 10, f"Ecart budgetaire calcule : {ecart:.2f} euros", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    if fraude_meta:
+        pdf.cell(0, 10, "Alerte : Fichier modifie via un editeur tiers.", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+    pdf.ln(15)
+    pdf.set_font("Helvetica", style="I", size=10)
+    pdf.multi_cell(0, 10, "RGPD : Audit realise en memoire locale. Aucune donnee conservee.")
+
+    return bytes(pdf.output(dest='S'))
+
+
+def charger_secrets() -> None:
+    global MOT_DE_PASSE_ATTENDU, EMAIL_EXPEDITEUR, MOT_DE_PASSE_EMAIL
+    try:
+        MOT_DE_PASSE_ATTENDU = st.secrets["MOT_DE_PASSE_ATTENDU"]
+        EMAIL_EXPEDITEUR = st.secrets["EMAIL_EXPEDITEUR"]
+        MOT_DE_PASSE_EMAIL = st.secrets["MOT_DE_PASSE_EMAIL"]
+    except Exception:
+        MOT_DE_PASSE_ATTENDU = "demo-password"
+        EMAIL_EXPEDITEUR = "demo@example.com"
+        MOT_DE_PASSE_EMAIL = "demo-password"
+        st.warning("⚠️ Secrets non configurés : mode démo activé localement.")
+
+
+def extract_pdf_content(uploaded_file) -> tuple[str, dict, str | None]:
+    text = ""
+    metadata = {}
+    error = None
+
+    try:
+        with pdfplumber.open(uploaded_file) as pdf:
+            metadata = pdf.metadata or {}
+            for page in pdf.pages:
+                page_text = page.extract_text() or ""
+                if page_text:
+                    text += page_text + "\n"
+    except Exception as exc:
+        error = str(exc)
+
+    return text, metadata, error
+
 
 # ==========================================
 # 🌍 PARTIE 1 : LA VITRINE PUBLIQUE
 # ==========================================
 def afficher_vitrine():
     st.markdown("""
-        <div style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); padding: 30px; border-radius: 16px; text-align: center; margin-bottom: 25px; border: 2px solid #d97706;">
-            <div style="font-size: 50px; margin-bottom: 10px;">🛡️</div>
-            <h1 style="color: #ffffff; margin: 0; font-family: 'Helvetica Neue', sans-serif; font-weight: 700; letter-spacing: 1px;">BailSafe</h1>
-            <p style="color: #94a3b8; font-size: 16px; margin-top: 5px; margin-bottom: 0;">Filtre Anti-Fraude Documentaire & Analyse Heuristique par IA</p>
+        <div style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); padding: 34px; border-radius: 18px; text-align: center; margin-bottom: 25px; border: 2px solid #f59e0b; box-shadow: 0 12px 30px rgba(0,0,0,0.25);">
+            <div style="font-size: 56px; margin-bottom: 10px;">🛡️</div>
+            <h1 style="color: #ffffff; margin: 0; font-family: 'Helvetica Neue', sans-serif; font-weight: 800; letter-spacing: 1px;">BailSafe</h1>
+            <p style="color: #cbd5e1; font-size: 17px; margin-top: 7px; margin-bottom: 0;">Filtre Anti-Fraude Documentaire & Analyse Heuristique par IA</p>
         </div>
     """, unsafe_allow_html=True)
     
@@ -52,14 +181,15 @@ def afficher_vitrine():
 
     with tab_constat:
         st.markdown("### Pourquoi sécuriser vos dossiers locatifs ?")
-        colA, colB = st.columns(2)
+        colA, colB, colC = st.columns(3)
         colA.metric(label="Risque financier global", value="Élevé", delta="Impayés en forte hausse", delta_color="inverse")
         colB.metric(label="Contrôle visuel classique", value="Incertain", delta="Fraudes invisibles à l'œil", delta_color="inverse")
+        colC.metric(label="Temps de détection", value="< 24h", delta="Analyse express", delta_color="normal")
         st.info("Un propriétaire particulier n'a généralement ni le temps ni les outils pour traquer les pixels modifiés ou les anomalies mathématiques d'un document.")
 
     with tab_solution:
         st.markdown("### Notre Expertise Technologique")
-        st.success("**Pour 20 € par dossier**, bénéficiez d'un audit de conformité express sous 24h.")
+        st.success("**Pour 20 € par dossier**, bénéficiez d'un audit de conformité express sous 24h, avec un rapport clair et exploitables en quelques minutes.")
         st.markdown("""
         - 🔎 **Analyse Forensique** : Traque des traces d'outils d'édition (Photoshop, Canva...).
         - 🧮 **Validation Algorithmique** : Recalcul automatique des cumuls fiscaux.
@@ -95,18 +225,137 @@ def afficher_vitrine():
         """)
 
     st.divider()
-    st.markdown("<h3 style='text-align: center;'>📩 Confiez-nous votre première analyse</h3>", unsafe_allow_html=True)
-    
+    st.markdown("<h3 style='text-align: center;'>⚡ Une offre claire, rapide et crédible</h3>", unsafe_allow_html=True)
+    col_offer_1, col_offer_2, col_offer_3 = st.columns(3)
+    col_offer_1.metric("Prix", "20 €", "par dossier")
+    col_offer_2.metric("Délai", "< 24h", "analyse express")
+    col_offer_3.metric("Livrable", "PDF", "rapport prêt à envoyer")
+
     st.markdown("""
-        <div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 30px;">
+    <div style="background: linear-gradient(135deg, #111827 0%, #1f2937 100%); border: 1px solid #f59e0b; border-radius: 16px; padding: 20px; margin: 16px 0 22px 0; color: white;">
+        <h4 style="margin-top: 0; color: white;">Pourquoi les propriétaires nous choisissent</h4>
+        <ul style="margin: 0; padding-left: 20px; color: #e5e7eb;">
+            <li>Analyse rapide, claire et actionnable.</li>
+            <li>Rapport prêt à envoyer au client en quelques minutes.</li>
+            <li>Protection contre les documents manipulés ou incohérents.</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("### Comment ça marche")
+    step1, step2, step3 = st.columns(3)
+    with step1:
+        st.info("1. Le propriétaire dépose le dossier PDF")
+    with step2:
+        st.info("2. BailSafe analyse les anomalies et le scoring")
+    with step3:
+        st.info("3. Un rapport PDF clair est livré et partageable")
+
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%); border: 1px solid #93c5fd; border-radius: 14px; padding: 18px; margin: 20px 0;">
+        <h4 style="margin-top: 0; color: #0f172a;">🎯 Ce que vous gagnez immédiatement</h4>
+        <p style="margin: 0; color: #334155;">Vous réduisez les risques d’acceptation d’un dossier douteux, vous gagnez du temps et vous disposez d’un argument solide pour justifier votre décision.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #0f172a 0%, #111827 100%); border: 1px solid #f59e0b; border-radius: 18px; padding: 24px; margin: 24px 0; color: white; text-align: center;">
+        <h3 style="margin-top: 0; color: white;">🚀 Passez à l’étape supérieure</h3>
+        <p style="margin-bottom: 16px; color: #e5e7eb;">Stoppez les dossiers douteux avant qu’ils ne deviennent un problème.</p>
+        <div style="display: flex; justify-content: center; gap: 14px; flex-wrap: wrap;">
             <a href="https://leboncoin.fr/profil/3780fc14-e927-43d6-b826-40c02a3300c2" target="_blank" style="text-decoration: none;">
-                <div style="background-color: #f56523; color: white; padding: 12px 24px; border-radius: 8px; font-weight: bold;">🛒 Contact LeBonCoin</div>
+                <div style="background-color: #f56523; color: white; padding: 12px 24px; border-radius: 10px; font-weight: bold;">🛒 Contact LeBonCoin</div>
             </a>
             <a href="https://www.facebook.com/share/1KKBK1mfpV/?mibextid=wwXlfr" target="_blank" style="text-decoration: none;">
-                <div style="background-color: #1877f2; color: white; padding: 12px 24px; border-radius: 8px; font-weight: bold;">📘 Contact Facebook</div>
+                <div style="background-color: #2563eb; color: white; padding: 12px 24px; border-radius: 10px; font-weight: bold;">📘 Contact Facebook</div>
             </a>
         </div>
+    </div>
     """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%); border: 1px solid #93c5fd; border-radius: 14px; padding: 16px 18px; margin: 12px 0 20px 0;">
+        <b>✅ Résultat attendu :</b> un dossier de location plus sûr, une décision plus rapide, et un argument clair pour justifier votre choix.
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); border: 1px solid #cbd5e1; border-radius: 14px; padding: 18px; margin: 16px 0;">
+        <h4 style="margin-top: 0; color: #0f172a;">🧠 Pourquoi c’est convaincant</h4>
+        <p style="margin: 0 0 10px 0; color: #334155;">""" + build_conversion_pitch() + """</p>
+        <ul style="margin: 0; padding-left: 18px; color: #475569;">
+            <li>Transparence du diagnostic.</li>
+            <li>Rapport clair en quelques minutes.</li>
+            <li>Confiance au moment de la décision.</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
+    value_columns = st.columns(3)
+    for column, item in zip(value_columns, build_value_pillars()):
+        with column:
+            st.info(item)
+
+    with st.expander("❓ FAQ rapide"):
+        st.write("- Un audit est-il utile si le dossier semble correct ?")
+        st.write("- Oui, car certains signes de fraude restent invisibles à l’œil nu.")
+        st.write("- Combien de temps faut-il ?")
+        st.write("- En général, l’analyse est livrée sous 24 heures.")
+
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #111827 0%, #1f2937 100%); border: 1px solid #f59e0b; border-radius: 16px; padding: 20px; margin: 20px 0; color: white;">
+        <h4 style="margin-top: 0; color: white;">💼 Offre premium</h4>
+        <p style="margin: 0 0 10px 0; color: #e5e7eb;">Audit express à 20 € par dossier, livré sous 24h avec un rapport clair, exploitable et prêt à partager.</p>
+        <ul style="margin: 0; padding-left: 18px; color: #f9fafb;">
+            <li>Analyse forensique du document</li>
+            <li>Validation des incohérences financières</li>
+            <li>Rapport PDF prêt à transmettre</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%); border: 1px solid #93c5fd; border-radius: 16px; padding: 18px; margin: 18px 0;">
+        <h4 style="margin-top: 0; color: #0f172a;">🤖 Assistant IA de conversion</h4>
+        <p style="margin: 0 0 10px 0; color: #334155;">Choisissez votre objectif et l’outil vous propose un message de vente plus percutant en quelques secondes.</p>
+        <ul style="margin: 0 0 10px 0; padding-left: 18px; color: #475569;">
+            <li>Met en avant la valeur de l’audit en 3 phrases.</li>
+            <li>Rassure le bailleur sur la sécurité du dossier.</li>
+            <li>Donne un effet de sérieux, de contrôle et de protection.</li>
+        </ul>
+        <div style="background: #ffffff; border: 1px solid #dbeafe; border-radius: 10px; padding: 10px; color: #0f172a;">
+            <b>Exemple prêt à utiliser :</b><br>
+            “Avant de signer, faisons un contrôle sérieux du dossier. BailSafe permet de détecter les incohérences, d’éviter les mauvaises surprises et de sécuriser votre décision.”
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    intent = st.selectbox("Objectif du message", ["Je veux rassurer un bailleur", "Je veux accélérer une décision", "Je veux faire peur aux dossiers douteux"])
+    ai_preview = build_ai_insight(intent, "SUSPECT", 250.0, True, False)
+    st.success(ai_preview)
+    st.caption("Exemple généré par l’IA de démonstration pour renforcer la crédibilité du service.")
+
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #fef3c7 0%, #fff7ed 100%); border: 1px solid #f59e0b; border-radius: 14px; padding: 16px; margin: 16px 0;">
+        <h4 style="margin-top: 0; color: #92400e;">📈 Simulateur de gain</h4>
+        <p style="margin: 0; color: #78350f;">Visualisez l’impact concret d’un audit régulier sur votre temps et votre sécurité.</p>
+    </div>
+    """, unsafe_allow_html=True)
+    dossiers_par_mois = st.slider("Nombre de dossiers par mois", 1, 20, 5)
+    minutes_saved, risk_reduced, estimated_value = build_gain_simulation(dossiers_par_mois)
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Temps gagné", f"{minutes_saved} min")
+    c2.metric("Risque réduit", f"{risk_reduced}%")
+    c3.metric("Valeur estimée", f"{estimated_value} €")
+
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); border: 1px solid #cbd5e1; border-radius: 12px; padding: 14px; margin: 12px 0 0 0;">
+        <b>💬 Mini-chat IA :</b> écrivez un message pour tester l’assistant.
+    </div>
+    """, unsafe_allow_html=True)
+    user_message = st.text_input("Votre question", placeholder="Combien ça coûte ?")
+    if user_message:
+        st.info(build_ai_reply(user_message))
     
     st.divider()
     with st.expander("🔐 Accès Expert"):
@@ -122,6 +371,13 @@ def afficher_vitrine():
 # 🕵️‍♂️ PARTIE 2 : L'INTERFACE EXPERT
 # ==========================================
 def afficher_interface_expert():
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #111827 0%, #1f2937 100%); border: 1px solid #f59e0b; border-radius: 16px; padding: 20px; margin-bottom: 16px; color: white;">
+        <h2 style="margin: 0 0 6px 0; color: white;">Cockpit d’Analyse Premium</h2>
+        <p style="margin: 0; color: #d1d5db;">Détection rapide, scoring clair, rapport prêt à partager.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
     colA, colB = st.columns([4, 1])
     with colA:
         st.title("Cockpit d'Analyse 🕵️‍♂️")
@@ -132,24 +388,18 @@ def afficher_interface_expert():
 
     with st.expander("💸 Tunnel de paiement (Message client)"):
         st.write("Copie-colle ce message à ton client pour encaisser l'audit :")
-        st.code("""Bonjour ! J'ai bien reçu le dossier de votre candidat. 
+        st.code("""Bonjour ! J'ai bien reçu le dossier de votre candidat.
 Afin que je puisse lancer l'audit technique et forensique, je vous invite à régler les 20€ d'honoraires via ce lien sécurisé : [TON LIEN LYDIA / PAYPAL HERE]
 
-Dès réception, le système scanne les pièces et je vous envoie le rapport PDF de fiabilité. 
+Dès réception, le système scanne les pièces et je vous envoie le rapport PDF de fiabilité, avec un résumé clair de la conformité du dossier et les points d’attention prioritaires.
 Cordialement, Nolan - BailSafe""", language="text")
 
     fichier_pdf = st.file_uploader("📂 Déposez le PDF à auditer", type="pdf")
     
     if fichier_pdf is not None:
-        texte_brut = ""
-        metadata_pdf = {}
-        
-        with pdfplumber.open(fichier_pdf) as pdf:
-            metadata_pdf = pdf.metadata
-            for page in pdf.pages:
-                page_text = page.extract_text()
-                if page_text:
-                    texte_brut += page_text + "\n"
+        texte_brut, metadata_pdf, extraction_error = extract_pdf_content(fichier_pdf)
+        if extraction_error:
+            st.warning(f"⚠️ Lecture du PDF partielle : {extraction_error}")
         
         est_scan = len(texte_brut.strip()) < 20
 
@@ -209,53 +459,77 @@ Cordialement, Nolan - BailSafe""", language="text")
                 statut = "FIABLE (Aucune anomalie détectée)"
                 
             st.info(f"Statut calculé : {statut}")
+            st.markdown(f"<div style='background:#111827;padding:16px;border-radius:12px;color:#f9fafb;border:1px solid #374151;'> <b>Résumé expert :</b> {build_analysis_summary(statut, ecart, fraude_meta, est_scan)}</div>", unsafe_allow_html=True)
+            recommendations = build_ai_recommendations(statut, ecart, fraude_meta, est_scan)
+            st.markdown("### 🎯 Recommandations IA")
+            for item in recommendations:
+                st.write(f"- {item}")
             email_client = st.text_input("Adresse e-mail du client :", placeholder="client@gmail.com")
             
-            if st.button("🚀 Envoyer le Rapport PDF"):
-                # Nettoyage des caractères non-ASCII (émojis) pour éviter les crashs FPDF
-                statut_safe = re.sub(r'[^\x00-\x7F]+', '', statut)
-                
-                pdf = FPDF()
-                pdf.add_page()
-                pdf.set_font("Helvetica", style="B", size=16)
-                pdf.cell(0, 10, "Rapport d'Audit - BailSafe", ln=True, align="C")
-                pdf.ln(10)
-                pdf.set_font("Helvetica", size=12)
-                pdf.cell(0, 10, f"Diagnostic Global : {statut_safe}", ln=True)
-                if not est_scan:
-                    pdf.cell(0, 10, f"Ecart budgetaire calcule : {ecart:.2f} euros", ln=True)
-                if fraude_meta:
-                    pdf.cell(0, 10, "Alerte : Fichier modifie via un editeur tiers.", ln=True)
-                
-                pdf.ln(15)
-                pdf.set_font("Helvetica", style="I", size=10)
-                pdf.multi_cell(0, 10, "RGPD : Audit realise en memoire locale. Aucune donnee conservee.")
-                
-                pdf_bytes = pdf.output(dest='S')
-                
-                try:
-                    msg = MIMEMultipart()
-                    msg['From'] = EMAIL_EXPEDITEUR
-                    msg['To'] = email_client
-                    msg['Subject'] = "[BailSafe] Votre Rapport d'Audit Locatif"
-                    msg.attach(MIMEText("Bonjour,\n\nVeuillez trouver ci-joint le rapport d'audit anti-fraude express concernant le dossier de votre candidat.\n\nCordialement,\nNolan - BailSafe", 'plain'))
-                    
-                    part = MIMEBase('application', 'octet-stream')
-                    part.set_payload(pdf_bytes)
-                    encoders.encode_base64(part)
-                    part.add_header('Content-Disposition', 'attachment; filename="Rapport_BailSafe.pdf"')
-                    msg.attach(part)
-                    
-                    server = smtplib.SMTP('smtp.gmail.com', 587)
-                    server.starttls()
-                    server.login(EMAIL_EXPEDITEUR, MOT_DE_PASSE_EMAIL)
-                    server.send_message(msg)
-                    server.quit()
-                    st.success("✅ Rapport envoyé avec succès !")
-                except Exception as e:
-                    st.error(f"Erreur d'envoi : {e}")
+            score_risque = 0
+            if est_scan:
+                score_risque = 70
+            elif fraude_math and fraude_meta:
+                score_risque = 95
+            elif fraude_math or fraude_meta:
+                score_risque = 75
+            else:
+                score_risque = 20
 
-if not st.session_state["authentifie"]:
-    afficher_vitrine()
-else:
-    afficher_interface_expert()
+            st.progress(score_risque / 100)
+            st.caption(f"Niveau de risque estimé : {score_risque}/100")
+            
+            col_send, col_download = st.columns(2)
+            with col_send:
+                if st.button("🚀 Envoyer le Rapport PDF"):
+                    if not is_valid_email(email_client):
+                        st.error("Veuillez saisir une adresse e-mail client valide avant l'envoi.")
+                    else:
+                        pdf_bytes = build_report_pdf(statut, ecart, fraude_meta, est_scan)
+
+                        try:
+                            msg = MIMEMultipart()
+                            msg['From'] = EMAIL_EXPEDITEUR
+                            msg['To'] = email_client
+                            msg['Subject'] = "[BailSafe] Votre Rapport d'Audit Locatif"
+                            msg.attach(MIMEText("Bonjour,\n\nVeuillez trouver ci-joint le rapport d'audit anti-fraude express concernant le dossier de votre candidat.\n\nCordialement,\nNolan - BailSafe", 'plain'))
+
+                            part = MIMEBase('application', 'octet-stream')
+                            part.set_payload(pdf_bytes)
+                            encoders.encode_base64(part)
+                            part.add_header('Content-Disposition', 'attachment; filename="Rapport_BailSafe.pdf"')
+                            msg.attach(part)
+
+                            server = smtplib.SMTP('smtp.gmail.com', 587)
+                            server.starttls()
+                            server.login(EMAIL_EXPEDITEUR, MOT_DE_PASSE_EMAIL)
+                            server.send_message(msg)
+                            server.quit()
+                            st.success("✅ Rapport envoyé avec succès !")
+                        except Exception as e:
+                            st.error(f"Erreur d'envoi : {e}")
+
+            with col_download:
+                pdf_bytes = build_report_pdf(statut, ecart, fraude_meta, est_scan)
+                st.download_button(
+                    label="⬇️ Télécharger le rapport",
+                    data=pdf_bytes,
+                    file_name=get_report_filename(statut),
+                    mime="application/pdf",
+                )
+
+def main() -> None:
+    st.set_page_config(page_title="BailSafe | Audit Locatif Expert", page_icon="🛡️", layout="centered")
+    charger_secrets()
+
+    if "authentifie" not in st.session_state:
+        st.session_state["authentifie"] = False
+
+    if not st.session_state["authentifie"]:
+        afficher_vitrine()
+    else:
+        afficher_interface_expert()
+
+
+if __name__ == "__main__":
+    main()
