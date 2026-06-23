@@ -41,7 +41,7 @@ def afficher_vitrine():
     st.markdown("<h3 style='text-align: center;'>Louez votre bien immobilier en toute sérénité.</h3>", unsafe_allow_html=True)
     st.divider()
 
-    # Ajout du 5ème onglet pour les Mentions Légales
+    # Les 5 onglets demandés
     tab_constat, tab_solution, tab_preuve, tab_rgpd, tab_legales = st.tabs([
         "🚨 Le Risque", 
         "💡 La Solution", 
@@ -75,7 +75,6 @@ def afficher_vitrine():
         > - **Vérification mathématique :** Écart de 1 240,00 € détecté entre le net à payer et le cumul imposable.
         > - **Empreinte numérique :** Utilisation d'un logiciel de retouche (*Adobe Photoshop 2023*) détectée dans le code source du fichier.
         """)
-        st.caption("Grâce à ces données, vous évitez un candidat fraudeur avant même la signature du bail.")
 
     with tab_rgpd:
         st.warning("🛡️ **Garantie de Conformité** : Conformément au RGPD, BailSafe agit sans persistance.")
@@ -84,15 +83,14 @@ def afficher_vitrine():
     with tab_legales:
         st.markdown("### Mentions Légales & Clause de Non-Responsabilité")
         st.markdown("""
-        **Éditeur du service :** BailSafe – Service d'assistance technique à la gestion immobilière proposé par Nolan Bunet (Statut de micro-entreprise en cours de finalisation).  
+        **Éditeur du service :** BailSafe – Service d'assistance technique à la gestion immobilière proposé par Nolan Bunet.
         Contact : bunetnolan@gmail.com
         
-        **Hébergement :** Ce service est exécuté de manière sécurisée et éphémère via la plateforme **Streamlit Community Cloud** (infrastructures serveurs sécurisées).
+        **Hébergement :** Ce service est exécuté de manière sécurisée et éphémère via la plateforme **Streamlit Community Cloud**.
         
-        **Exclusion Totale de Responsabilité (Protection Juridique) :** BailSafe fournit exclusivement une **assistance technique algorithmique et forensique** basée sur l'état informatique des documents numériques soumis au moment de l'analyse. 
-        
-        - **Aucune Garantie d'Impayé :** Cet audit constitue un avis technique consultatif à un instant T. Il ne s'agit en aucun cas d'une assurance, d'une caution ou d'une garantie financière contre de futurs impayés de loyer, des litiges juridiques ou des dégradations commises par le locataire élu.
-        - **Limites Techniques :** Malgré la sophistication de nos scripts de détection, BailSafe ne saurait être tenu responsable en cas de falsification matérielle ou numérique d'un niveau de retouche indétectable par analyse heuristique, ou si la situation financière/professionnelle du locataire évolue négativement après l'analyse.
+        **Exclusion Totale de Responsabilité (Protection Juridique) :** BailSafe fournit exclusivement une **assistance technique algorithmique et forensique** basée sur l'état informatique des documents numériques soumis. 
+        - **Aucune Garantie d'Impayé :** Cet audit constitue un avis technique consultatif.
+        - **Limites Techniques :** BailSafe ne saurait être tenu responsable en cas de falsification matérielle ou numérique d'un niveau de retouche indétectable par analyse heuristique.
         - **Souveraineté du Bailleur :** La décision finale d'acceptation, de validation ou de refus d'une candidature locative relève de la responsabilité unique, entière et souveraine du propriétaire bailleur.
         """)
 
@@ -181,7 +179,7 @@ Cordialement, Nolan - BailSafe""", language="text")
                 
                 m1, m2 = st.columns(2)
                 m1.metric("Cumul Théorique calculé", f"{calcul_theorique:.2f} €")
-                m2.metric("Écart constaté", f"{ecart:.2f} €", delta_color="inverse", delta=f"{ecart:.2f} €" if ecart > 0 else "0.00 €")
+                m2.metric("Écart constaté", f"{ecart:.2f} €", delta=f"{ecart:.2f} €" if ecart > 0 else "0.00 €")
                 fraude_math = ecart > 150
 
         with tab2:
@@ -202,65 +200,60 @@ Cordialement, Nolan - BailSafe""", language="text")
         with tab3:
             st.subheader("Scoring & Expédition")
             if est_scan:
-                statut = "VÉRIFICATION MANUELLE REQUISE (Scan/Photo fourni par le candidat)"
-                st.warning(statut)
+                statut = "VÉRIFICATION MANUELLE REQUISE"
             elif fraude_math and fraude_meta:
-                statut = "CRITIQUE (Falsification technique et mathématique détectée)"
-                st.error(statut)
+                statut = "CRITIQUE (Falsification détectée)"
             elif fraude_math or fraude_meta:
-                statut = "SUSPECT (Anomalies majeures à vérifier)"
-                st.warning(statut)
+                statut = "SUSPECT (Anomalies majeures)"
             else:
                 statut = "FIABLE (Aucune anomalie détectée)"
-                st.success(statut)
                 
+            st.info(f"Statut calculé : {statut}")
             email_client = st.text_input("Adresse e-mail du client :", placeholder="client@gmail.com")
             
             if st.button("🚀 Envoyer le Rapport PDF"):
-                if not email_client:
-                    st.warning("Renseignez l'e-mail.")
-                else:
-                    pdf = FPDF()
-                    pdf.add_page()
-                    pdf.set_font("Helvetica", style="B", size=16)
-                    pdf.cell(0, 10, "Rapport d'Audit - BailSafe", ln=True, align="C")
-                    pdf.ln(10)
-                    pdf.set_font("Helvetica", size=12)
-                    pdf.cell(0, 10, f"Diagnostic Global : {statut}", ln=True)
-                    if not est_scan:
-                        pdf.cell(0, 10, f"Ecart budgetaire calcule : {ecart:.2f} euros", ln=True)
-                    if fraude_meta:
-                        pdf.cell(0, 10, "Alerte : Fichier modifie via un editeur tiers.", ln=True)
-                    else:
-                        pdf.cell(0, 10, "Controle Graphique : Structure informatique standard.", ln=True)
+                # Nettoyage des caractères non-ASCII (émojis) pour éviter les crashs FPDF
+                statut_safe = re.sub(r'[^\x00-\x7F]+', '', statut)
+                
+                pdf = FPDF()
+                pdf.add_page()
+                pdf.set_font("Helvetica", style="B", size=16)
+                pdf.cell(0, 10, "Rapport d'Audit - BailSafe", ln=True, align="C")
+                pdf.ln(10)
+                pdf.set_font("Helvetica", size=12)
+                pdf.cell(0, 10, f"Diagnostic Global : {statut_safe}", ln=True)
+                if not est_scan:
+                    pdf.cell(0, 10, f"Ecart budgetaire calcule : {ecart:.2f} euros", ln=True)
+                if fraude_meta:
+                    pdf.cell(0, 10, "Alerte : Fichier modifie via un editeur tiers.", ln=True)
+                
+                pdf.ln(15)
+                pdf.set_font("Helvetica", style="I", size=10)
+                pdf.multi_cell(0, 10, "RGPD : Audit realise en memoire locale. Aucune donnee conservee.")
+                
+                pdf_bytes = pdf.output(dest='S')
+                
+                try:
+                    msg = MIMEMultipart()
+                    msg['From'] = EMAIL_EXPEDITEUR
+                    msg['To'] = email_client
+                    msg['Subject'] = "[BailSafe] Votre Rapport d'Audit Locatif"
+                    msg.attach(MIMEText("Bonjour,\n\nVeuillez trouver ci-joint le rapport d'audit anti-fraude express concernant le dossier de votre candidat.\n\nCordialement,\nNolan - BailSafe", 'plain'))
                     
-                    pdf.ln(15)
-                    pdf.set_font("Helvetica", style="I", size=10)
-                    pdf.multi_cell(0, 10, "RGPD : Audit realise en memoire locale. Aucune donnee conservee.")
+                    part = MIMEBase('application', 'octet-stream')
+                    part.set_payload(pdf_bytes)
+                    encoders.encode_base64(part)
+                    part.add_header('Content-Disposition', 'attachment; filename="Rapport_BailSafe.pdf"')
+                    msg.attach(part)
                     
-                    pdf_bytes = pdf.output(dest='S')
-                    
-                    try:
-                        msg = MIMEMultipart()
-                        msg['From'] = EMAIL_EXPEDITEUR
-                        msg['To'] = email_client
-                        msg['Subject'] = "[BailSafe] Votre Rapport d'Audit Locatif"
-                        msg.attach(MIMEText("Bonjour,\n\nVeuillez trouver ci-joint le rapport d'audit anti-fraude express concernant le dossier de votre candidat.\n\nCordialement,\nNolan - BailSafe", 'plain'))
-                        
-                        part = MIMEBase('application', 'octet-stream')
-                        part.set_payload(pdf_bytes)
-                        encoders.encode_base64(part)
-                        part.add_header('Content-Disposition', 'attachment; filename="Rapport_BailSafe.pdf"')
-                        msg.attach(part)
-                        
-                        server = smtplib.SMTP('smtp.gmail.com', 587)
-                        server.starttls()
-                        server.login(EMAIL_EXPEDITEUR, MOT_DE_PASSE_EMAIL)
-                        server.send_message(msg)
-                        server.quit()
-                        st.success("✅ Rapport envoyé avec succès !")
-                    except Exception as e:
-                        st.error(f"Erreur d'envoi : {e}")
+                    server = smtplib.SMTP('smtp.gmail.com', 587)
+                    server.starttls()
+                    server.login(EMAIL_EXPEDITEUR, MOT_DE_PASSE_EMAIL)
+                    server.send_message(msg)
+                    server.quit()
+                    st.success("✅ Rapport envoyé avec succès !")
+                except Exception as e:
+                    st.error(f"Erreur d'envoi : {e}")
 
 if not st.session_state["authentifie"]:
     afficher_vitrine()
