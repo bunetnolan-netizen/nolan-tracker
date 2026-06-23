@@ -7,8 +7,6 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
 from email import encoders
-import tempfile
-import os
 
 # ==========================================
 # ⚙️ CONFIGURATION & IDENTIFIANTS
@@ -16,13 +14,16 @@ import os
 MOT_DE_PASSE_ATTENDU = "Nolan18!!"  # 🔴 À CHANGER AVANT DE METTRE SUR GITHUB
 EMAIL_EXPEDITEUR = "bunetnolan@gmail.com" # 🔴 TON ADRESSE GMAIL
 MOT_DE_PASSE_EMAIL = "uimd wahc rnbg enmh" # 🔴 TON MOT DE PASSE D'APPLICATION GMAIL
+OBJECTIF_ORDINATEUR = 800  # Objectif financier en euros
 
 # Configuration de la page
 st.set_page_config(page_title="BailSafe | Audit Locatif Anti-Fraude", page_icon="🛡️", layout="centered")
 
-# Gestion de la session (Connecté ou non)
+# Gestion de la session (Connecté ou non + Cagnotte)
 if "authentifie" not in st.session_state:
     st.session_state["authentifie"] = False
+if "cagnotte" not in st.session_state:
+    st.session_state["cagnotte"] = 0
 
 # ==========================================
 # 🌍 PARTIE 1 : LA VITRINE PUBLIQUE
@@ -76,17 +77,40 @@ def afficher_vitrine():
 # 🕵️‍♂️ PARTIE 2 : L'INTERFACE EXPERT (PRIVÉE)
 # ==========================================
 def afficher_interface_expert():
-    st.success("🟢 Mode Expert activé.")
-    if st.button("Se déconnecter"):
-        st.session_state["authentifie"] = False
+    # En-tête de déconnexion
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.success("🟢 Mode Expert activé.")
+    with col2:
+        if st.button("Se déconnecter"):
+            st.session_state["authentifie"] = False
+            st.rerun()
+            
+    st.title("Scanner BailSafe 🕵️‍♂️")
+
+    # --- 💰 LA CAGNOTTE ---
+    st.markdown("### 🎯 Objectif Nouvel Ordinateur")
+    progression = st.session_state["cagnotte"] / OBJECTIF_ORDINATEUR
+    st.progress(min(progression, 1.0))
+    st.write(f"**Cagnotte : {st.session_state['cagnotte']} € / {OBJECTIF_ORDINATEUR} €**")
+    
+    if st.button("➕ Encaisser 15 €"):
+        st.session_state["cagnotte"] += 15
         st.rerun()
         
-    st.title("Scanner BailSafe 🕵️‍♂️")
-    st.info("Rappel Légal : Conformément au RGPD, ne conservez aucune copie des documents après génération du rapport.")
+    st.divider()
+
+    # --- ⚖️ LE BANDEAU RGPD ---
+    st.info("""
+    **Rappel Légal & Conformité RGPD / AI Act :**
+    - **Consentement :** Assurez-vous que le propriétaire a obtenu l'accord explicite de son candidat.
+    - **Zéro Stockage :** Ne conservez aucune copie des documents. L'outil efface tout à la fin de la session.
+    - **Limites d'investigation :** L'investigation externe (ex: appeler un employeur) est strictement interdite. C'est un audit technique et mathématique.
+    """)
     
+    # --- 📄 SCANNER & EXTRACTION REGEX ---
     fichier_pdf = st.file_uploader("Chargez le PDF du bulletin de salaire", type="pdf")
     
-    # Section Extraction et Calculs (Repris de ton outil précédent)
     if fichier_pdf is not None:
         st.write("### 1. Analyse Mathématique Automatique")
         texte_brut = ""
@@ -94,7 +118,7 @@ def afficher_interface_expert():
             for page in pdf.pages:
                 texte_brut += page.extract_text() + "\n"
         
-        # Regex pour extraction
+        # Regex pour extraction automatique
         net_a_payer_match = re.search(r'(?i)net\s*[àa]\s*payer\s*.*?(\d[\d\s]*[.,]?\d*)', texte_brut)
         cumul_imposable_match = re.search(r'(?i)cumul\s*imposable\s*.*?(\d[\d\s]*[.,]?\d*)', texte_brut)
         
@@ -123,7 +147,7 @@ def afficher_interface_expert():
         email_client = st.text_input("Adresse e-mail du client propriétaire :")
         
         if st.button("Générer et Envoyer le rapport PDF"):
-            # Création du PDF (Version fpdf2 nettoyée des emojis pour éviter l'erreur)
+            # Création du PDF fpdf2
             pdf = FPDF()
             pdf.add_page()
             pdf.set_font("Helvetica", size=12)
@@ -141,7 +165,7 @@ def afficher_interface_expert():
                 msg['From'] = EMAIL_EXPEDITEUR
                 msg['To'] = email_client
                 msg['Subject'] = "Votre rapport d'audit BailSafe"
-                msg.attach(MIMEText("Bonjour,\n\nVeuillez trouver ci-joint le rapport d'audit anti-fraude demandé.\n\nCordialement,\nL'équipe BailSafe", 'plain'))
+                msg.attach(MIMEText("Bonjour,\n\nVeuillez trouver ci-joint le rapport d'audit anti-fraude express que vous avez demandé.\n\nCordialement,\nL'équipe BailSafe", 'plain'))
                 
                 part = MIMEBase('application', 'octet-stream')
                 part.set_payload(pdf_bytes)
