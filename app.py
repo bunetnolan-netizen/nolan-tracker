@@ -26,7 +26,7 @@ if "authentifie" not in st.session_state:
 # 🌍 PARTIE 1 : LA VITRINE PUBLIQUE (PREMIUM DISP)
 # ==========================================
 def afficher_vitrine():
-    # En-tête design en HTML/CSS (Fini le rendu image cheap, place au style SaaS épuré)
+    # En-tête design en HTML/CSS (Style SaaS épuré)
     st.markdown("""
         <div style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); padding: 30px; border-radius: 16px; text-align: center; margin-bottom: 25px; border: 2px solid #d97706;">
             <div style="font-size: 50px; margin-bottom: 10px;">🛡️</div>
@@ -71,9 +71,25 @@ def afficher_vitrine():
 
     st.divider()
     
-    # --- APPEL À L'ACTION (CTA) ---
+    # --- APPEL À L'ACTION (CTA) AVEC BOUTONS CLICABLES ---
     st.markdown("<h3 style='text-align: center;'>📩 Confiez-nous votre première analyse</h3>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center;'>Contactez-moi directement sur LeBonCoin ou Facebook pour sécuriser vos candidatures en cours.</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; margin-bottom: 20px;'>Cliquez sur la plateforme de votre choix pour me contacter directement et sécuriser vos candidatures en cours :</p>", unsafe_allow_html=True)
+    
+    # Intégration HTML/CSS des boutons d'icônes de contact
+    st.markdown("""
+        <div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 30px;">
+            <a href="https://leboncoin.fr/profil/3780fc14-e927-43d6-b826-40c02a3300c2" target="_blank" style="text-decoration: none;">
+                <div style="background-color: #f56523; color: white; padding: 12px 24px; border-radius: 8px; font-weight: bold; display: flex; align-items: center; gap: 10px; font-family: Helvetica, sans-serif; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <span style="font-size: 20px;">🛒</span> Contact LeBonCoin
+                </div>
+            </a>
+            <a href="https://www.facebook.com/share/1KKBK1mfpV/?mibextid=wwXlfr" target="_blank" style="text-decoration: none;">
+                <div style="background-color: #1877f2; color: white; padding: 12px 24px; border-radius: 8px; font-weight: bold; display: flex; align-items: center; gap: 10px; font-family: Helvetica, sans-serif; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <span style="font-size: 20px;">📘</span> Contact Facebook
+                </div>
+            </a>
+        </div>
+    """, unsafe_allow_html=True)
     
     st.divider()
     
@@ -148,7 +164,7 @@ def afficher_interface_expert():
             fraude_meta = any(logiciel in meta_string.lower() for logiciel in logiciels_suspects)
             
             if fraude_meta:
-                st.error("🚨 ALERTE SÉCURITÉ : Le fichier contient des signatures liées à un logiciel de retouche ou d'édition de PDF !")
+                st.error("🚨 ALERTE SÉCURITÉ : Le fichier contains des signatures liées à un logiciel de retouche ou d'édition de PDF !")
             else:
                 st.success("✅ Structure intègre. Aucune trace d'outil d'édition graphique suspect dans les métadonnées.")
 
@@ -172,7 +188,6 @@ def afficher_interface_expert():
                 if not email_client:
                     st.warning("Veuillez renseigner l'adresse e-mail de destination.")
                 else:
-                    # Génération du PDF de manière native et sécurisée (sans emojis)
                     pdf = FPDF()
                     pdf.add_page()
                     pdf.set_font("Helvetica", style="B", size=16)
@@ -189,7 +204,7 @@ def afficher_interface_expert():
                     
                     pdf.ln(15)
                     pdf.set_font("Helvetica", style="I", size=10)
-                    pdf.multi_cell(0, 10, "Clause de confidentialite (RGPD) : Ce document a ete etabli par traitement volatile en memoire vive. Le prestataire certifie qu'aucune piece justificative ni donnee personnelle n'est conservee sur ses serveurs suite a l'envoi de ce bilan.")
+                    pdf.multi_cell(0, 10, "Clause de confidentialite (RGPD) : Ce document a ete etabli par traitement volatile en memoire vive. Le prestatair certifie qu'aucune piece justificative ni donnee personnelle n'est conservee sur ses serveurs suite a l'envoi de ce bilan.")
                     
                     pdf_bytes = pdf.output(dest='S')
                     
