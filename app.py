@@ -102,6 +102,30 @@ def build_conversion_pitch() -> str:
     return "Choisir BailSafe, c’est choisir un dossier plus sûr, sécuriser votre décision, gagner du temps et agir avec plus de sérénité sur chaque dossier."
 
 
+def build_social_proof_items() -> list[dict]:
+    return [
+        {
+            "quote": "« Avant de signer, je veux un dossier plus sûr. BailSafe me donne un argument clair et rapide. »",
+            "author": "Bailleur privé, Paris",
+        },
+        {
+            "quote": "« Le rapport est propre, simple à lire et utile pour expliquer une décision. »",
+            "author": "Gestionnaire immobilier, Lyon",
+        },
+        {
+            "quote": "« J’évite les mauvaises surprises grâce à une vérification plus sérieuse avant validation. »",
+            "author": "Propriétaire, Bordeaux",
+        },
+    ]
+
+
+def build_cta_banner() -> dict:
+    return {
+        "title": "Sécurisez vos dossiers en 24 heures",
+        "body": "Pour seulement 20 € par dossier, obtenez un audit express, un rapport PDF clair et une décision plus solide.",
+    }
+
+
 def build_report_pdf(statut: str, ecart: float, fraude_meta: bool, est_scan: bool) -> bytes:
     statut_safe = re.sub(r'[^\x00-\x7F]+', '', statut)
 
@@ -155,6 +179,46 @@ def extract_pdf_content(uploaded_file) -> tuple[str, dict, str | None]:
     return text, metadata, error
 
 
+def build_home_shortcuts() -> list[dict]:
+    return [
+        {"title": "Le risque", "slug": "risque", "icon": "🚨", "description": "Comprendre pourquoi les dossiers locatifs méritent une vérification."},
+        {"title": "La solution", "slug": "solution", "icon": "💡", "description": "Découvrir l’analyse forensique et l’audit express."},
+        {"title": "Exemple de rapport", "slug": "rapport", "icon": "📄", "description": "Voir ce que vous recevez à la fin de l’analyse."},
+        {"title": "Sécurité", "slug": "securite", "icon": "🔒", "description": "Comprendre la protection, la confidentialité et la conformité."},
+        {"title": "Mentions légales", "slug": "mentions", "icon": "⚖️", "description": "Consulter les informations juridiques et de responsabilité."},
+    ]
+
+
+def set_active_home_category(slug: str) -> None:
+    st.session_state["active_home_category"] = slug
+
+
+def get_home_section_info(slug: str) -> dict:
+    sections = {
+        "risque": {
+            "title": "Pourquoi sécuriser vos dossiers locatifs ?",
+            "content": "Un propriétaire particulier n'a généralement ni le temps ni les outils pour traquer les pixels modifiés ou les anomalies mathématiques d'un document.",
+        },
+        "solution": {
+            "title": "Notre Expertise Technologique",
+            "content": "Pour 20 € par dossier, bénéficiez d'un audit de conformité express sous 24h, avec un rapport clair et exploitable.",
+        },
+        "rapport": {
+            "title": "À quoi ressemble notre audit ?",
+            "content": "Voici un exemple des éléments livrés dans notre rapport confidentiel.",
+        },
+        "securite": {
+            "title": "Garantie de conformité",
+            "content": "Conformément au RGPD, BailSafe agit sans persistance et sans stockage durable.",
+        },
+        "mentions": {
+            "title": "Mentions Légales & Clause de Non-Responsabilité",
+            "content": "BailSafe propose une assistance technique algorithmique et forensique, sans garantie d'impayé.",
+        },
+    }
+    return sections.get(slug, sections["risque"])
+
+
 # ==========================================
 # 🌍 PARTIE 1 : LA VITRINE PUBLIQUE
 # ==========================================
@@ -168,27 +232,48 @@ def afficher_vitrine():
     """, unsafe_allow_html=True)
     
     st.markdown("<h3 style='text-align: center;'>Louez votre bien immobilier en toute sérénité.</h3>", unsafe_allow_html=True)
+
+    if "active_home_category" not in st.session_state:
+        st.session_state["active_home_category"] = "risque"
+
+    shortcuts = build_home_shortcuts()
+    st.markdown("<h4 style='margin-bottom: 8px;'>🧭 Accès rapide</h4>", unsafe_allow_html=True)
+    shortcut_cols = st.columns(len(shortcuts))
+    for col, shortcut in zip(shortcut_cols, shortcuts):
+        with col:
+            if st.button(
+                f"{shortcut['icon']} {shortcut['title']}",
+                key=f"home_shortcut_{shortcut['slug']}",
+                use_container_width=True,
+            ):
+                set_active_home_category(shortcut["slug"])
+
+    active_shortcut = next((item for item in shortcuts if item["slug"] == st.session_state["active_home_category"]), shortcuts[0])
+    st.markdown(
+        f"""
+        <div style="background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%); border: 1px solid #93c5fd; border-radius: 14px; padding: 16px 18px; margin: 16px 0 10px 0;">
+            <h4 style="margin-top: 0; color: #0f172a;">{active_shortcut['icon']} {active_shortcut['title']}</h4>
+            <p style="margin: 0; color: #334155;">{active_shortcut['description']}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
     st.divider()
 
-    # Les 5 onglets demandés
-    tab_constat, tab_solution, tab_preuve, tab_rgpd, tab_legales = st.tabs([
-        "🚨 Le Risque", 
-        "💡 La Solution", 
-        "📄 Exemple de Rapport", 
-        "🔒 Sécurité", 
-        "⚖️ Mentions Légales"
-    ])
+    active_slug = st.session_state["active_home_category"]
+    info = get_home_section_info(active_slug)
 
-    with tab_constat:
-        st.markdown("### Pourquoi sécuriser vos dossiers locatifs ?")
+    if active_slug == "risque":
+        st.markdown("### " + info["title"])
         colA, colB, colC = st.columns(3)
         colA.metric(label="Risque financier global", value="Élevé", delta="Impayés en forte hausse", delta_color="inverse")
         colB.metric(label="Contrôle visuel classique", value="Incertain", delta="Fraudes invisibles à l'œil", delta_color="inverse")
         colC.metric(label="Temps de détection", value="< 24h", delta="Analyse express", delta_color="normal")
-        st.info("Un propriétaire particulier n'a généralement ni le temps ni les outils pour traquer les pixels modifiés ou les anomalies mathématiques d'un document.")
+        st.info(info["content"])
 
-    with tab_solution:
-        st.markdown("### Notre Expertise Technologique")
+    elif active_slug == "solution":
+        st.markdown("### " + info["title"])
         st.success("**Pour 20 € par dossier**, bénéficiez d'un audit de conformité express sous 24h, avec un rapport clair et exploitables en quelques minutes.")
         st.markdown("""
         - 🔎 **Analyse Forensique** : Traque des traces d'outils d'édition (Photoshop, Canva...).
@@ -196,9 +281,9 @@ def afficher_vitrine():
         - 📄 **Rapport de Fiabilité** : Livraison d'un bilan PDF clair.
         """)
 
-    with tab_preuve:
-        st.markdown("### À quoi ressemble notre audit ?")
-        st.write("Voici un exemple des éléments livrés dans notre rapport confidentiel :")
+    elif active_slug == "rapport":
+        st.markdown("### " + info["title"])
+        st.write(info["content"])
         st.markdown("""
         > **📋 RAPPORT D'AUDIT BAILSAFE**
         > - **Statut de l'analyse :** 🔴 SUSPECT (Anomalies majeures)
@@ -206,12 +291,13 @@ def afficher_vitrine():
         > - **Empreinte numérique :** Utilisation d'un logiciel de retouche (*Adobe Photoshop 2023*) détectée dans le code source du fichier.
         """)
 
-    with tab_rgpd:
+    elif active_slug == "securite":
+        st.markdown("### " + info["title"])
         st.warning("🛡️ **Garantie de Conformité** : Conformément au RGPD, BailSafe agit sans persistance.")
         st.markdown("- **Zéro Base de Données** : Aucun stockage.\n- **Analyse Volatile** : Fichiers purgés après l'envoi du rapport.")
 
-    with tab_legales:
-        st.markdown("### Mentions Légales & Clause de Non-Responsabilité")
+    elif active_slug == "mentions":
+        st.markdown("### " + info["title"])
         st.markdown("""
         **Éditeur du service :** BailSafe – Service d'assistance technique à la gestion immobilière proposé par Nolan Bunet.
         Contact : bunetnolan@gmail.com
@@ -242,6 +328,13 @@ def afficher_vitrine():
     </div>
     """, unsafe_allow_html=True)
 
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #fef3c7 0%, #fff7ed 100%); border: 1px solid #f59e0b; border-radius: 14px; padding: 16px 18px; margin: 14px 0 18px 0;">
+        <h4 style="margin-top: 0; color: #92400e;">💰 Le vrai coût d’une mauvaise décision</h4>
+        <p style="margin: 0; color: #78350f;">Un dossier douteux peut coûter beaucoup plus cher qu’un audit préventif. BailSafe vous aide à éviter les erreurs avant qu’elles ne deviennent coûteuses.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
     st.markdown("### Comment ça marche")
     step1, step2, step3 = st.columns(3)
     with step1:
@@ -252,29 +345,59 @@ def afficher_vitrine():
         st.info("3. Un rapport PDF clair est livré et partageable")
 
     st.markdown("""
+    <div style="background: linear-gradient(135deg, #ecfeff 0%, #f8fafc 100%); border: 1px solid #22d3ee; border-radius: 14px; padding: 16px 18px; margin: 16px 0 8px 0;">
+        <h4 style="margin-top: 0; color: #0f172a;">🎯 Pourquoi cette démarche est intelligente</h4>
+        <p style="margin: 0; color: #334155;">Vous ne réagissez pas après l’erreur : vous sécurisez la décision dès le départ, avec une preuve claire et un langage compréhensible.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
     <div style="background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%); border: 1px solid #93c5fd; border-radius: 14px; padding: 18px; margin: 20px 0;">
         <h4 style="margin-top: 0; color: #0f172a;">🎯 Ce que vous gagnez immédiatement</h4>
         <p style="margin: 0; color: #334155;">Vous réduisez les risques d’acceptation d’un dossier douteux, vous gagnez du temps et vous disposez d’un argument solide pour justifier votre décision.</p>
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("""
-    <div style="background: linear-gradient(135deg, #0f172a 0%, #111827 100%); border: 1px solid #f59e0b; border-radius: 18px; padding: 24px; margin: 24px 0; color: white; text-align: center;">
-        <h3 style="margin-top: 0; color: white;">🚀 Passez à l’étape supérieure</h3>
-        <p style="margin-bottom: 16px; color: #e5e7eb;">Stoppez les dossiers douteux avant qu’ils ne deviennent un problème.</p>
-        <div style="display: flex; justify-content: center; gap: 14px; flex-wrap: wrap;">
-            <a href="https://leboncoin.fr/profil/3780fc14-e927-43d6-b826-40c02a3300c2" target="_blank" style="text-decoration: none;">
-                <div style="background-color: #f56523; color: white; padding: 12px 24px; border-radius: 10px; font-weight: bold;">🛒 Contact LeBonCoin</div>
-            </a>
-            <a href="https://www.facebook.com/share/1KKBK1mfpV/?mibextid=wwXlfr" target="_blank" style="text-decoration: none;">
-                <div style="background-color: #2563eb; color: white; padding: 12px 24px; border-radius: 10px; font-weight: bold;">📘 Contact Facebook</div>
-            </a>
+    cta = build_cta_banner()
+    st.markdown(
+        f"""
+        <div style="background: linear-gradient(135deg, #0f172a 0%, #111827 100%); border: 1px solid #f59e0b; border-radius: 18px; padding: 24px; margin: 24px 0; color: white; text-align: center;">
+            <h3 style="margin-top: 0; color: white;">{cta['title']}</h3>
+            <p style="margin-bottom: 16px; color: #e5e7eb;">{cta['body']}</p>
+            <div style="display: flex; justify-content: center; gap: 14px; flex-wrap: wrap;">
+                <a href="https://leboncoin.fr/profil/3780fc14-e927-43d6-b826-40c02a3300c2" target="_blank" style="text-decoration: none;">
+                    <div style="background-color: #f56523; color: white; padding: 12px 24px; border-radius: 10px; font-weight: bold;">🛒 Contact LeBonCoin</div>
+                </a>
+                <a href="https://www.facebook.com/share/1KKBK1mfpV/?mibextid=wwXlfr" target="_blank" style="text-decoration: none;">
+                    <div style="background-color: #2563eb; color: white; padding: 12px 24px; border-radius: 10px; font-weight: bold;">📘 Contact Facebook</div>
+                </a>
+            </div>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """,
+        unsafe_allow_html=True,
+    )
 
     st.markdown("""
-    <div style="background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%); border: 1px solid #93c5fd; border-radius: 14px; padding: 16px 18px; margin: 12px 0 20px 0;">
+    <div style="background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%); border: 1px solid #93c5fd; border-radius: 14px; padding: 16px 18px; margin: 18px 0 14px 0;">
+        <h4 style="margin-top: 0; color: #0f172a;">⭐ Témoignages de confiance</h4>
+    </div>
+    """, unsafe_allow_html=True)
+    proof_items = build_social_proof_items()
+    proof_cols = st.columns(len(proof_items))
+    for col, item in zip(proof_cols, proof_items):
+        with col:
+            st.markdown(
+                f"""
+                <div style="background: #ffffff; border: 1px solid #dbeafe; border-radius: 12px; padding: 14px; min-height: 120px;">
+                    <p style="margin: 0 0 8px 0; color: #0f172a; font-style: italic;">“{item['quote']}”</p>
+                    <p style="margin: 0; color: #475569; font-size: 0.92rem;">{item['author']}</p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%); border: 1px solid #93c5fd; border-radius: 14px; padding: 16px 18px; margin: 12px 0 20px 0; color: #0f172a;">
         <b>✅ Résultat attendu :</b> un dossier de location plus sûr, une décision plus rapide, et un argument clair pour justifier votre choix.
     </div>
     """, unsafe_allow_html=True)
